@@ -119,5 +119,6 @@ class RedditScrapper:
             "is_original": submission.is_original_content,
             "is_self": submission.is_self,
             "word_count": len(submission.selftext.split()),
-            "used": False,
+            "status": None,
+            "triaged": False,
         }

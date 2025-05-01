@@ -1,5 +1,8 @@
 from creepypastas.config import Settings
 from creepypastas.services.reddit_scraper import RedditScrapper
+from creepypastas.services.triage import Triage
+
+import asyncio
 
 settings = Settings()
 
@@ -20,7 +23,18 @@ def run():
     logger = logging.getLogger(__name__)
     logger.info("Starting sandbox...")
 
-    reddit_scraper = RedditScrapper(settings)
-    reddit_scraper.scrape_stories()
+    # reddit_scraper = RedditScrapper(settings)
+    # reddit_scraper.scrape_stories()
 
-    logger.info("Scraping completed.")
+    # logger.info("Scraping completed.")
+
+    triage = Triage(
+        csv_path=settings.THREADS_PATH / "reddit_threads_20250501_010038.csv",
+        settings=settings,
+    )
+
+    response = asyncio.run(triage.triage())
+
+    print(response)
+
+    logger.info("Triage completed.")
