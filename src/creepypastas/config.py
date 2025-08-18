@@ -172,6 +172,9 @@ class Settings(BaseSettings):
     "thumbnail_prompt": "thumbnail description"
     }}"""
 
+    TTS_OUTPUT_PATH: Path = DATA_DIR / "narrations"
+    TTS_SPEAKER_PATH: Path = PROJECT_ROOT / "assets" / "speakers" / "stephen.wav"
+
     class Config:
         """Pydantic config for environment variables."""
 

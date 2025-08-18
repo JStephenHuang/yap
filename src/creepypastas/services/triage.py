@@ -35,7 +35,7 @@ class Triage:
         csv_path: Path,
         settings: Settings,
     ):
-        self.csv_path = Path(csv_path)
+        self.csv_path = csv_path
         self.ollama = AsyncClient()
         self.settings = settings
         # Load CSV, ensure required columns exist
@@ -100,10 +100,10 @@ class Triage:
 
                 # Set status
                 if opinion.approved:
-                    logger.info(f"Thread {row["thread_id"]} approved.")
+                    logger.info(f"Thread {row.get('thread_id')} approved.")
                     self.df.at[idx, "status"] = "triaged"
                 else:
-                    logger.info(f"Thread {row["thread_id"]} rejected.")
+                    logger.info(f"Thread {row.get('thread_id')} rejected.")
                     self.df.at[idx, "status"] = "rejected"
                     self.df.at[idx, "rejected_reasoning"] = opinion.reasoning
 
@@ -113,5 +113,5 @@ class Triage:
                 logger.info(f"Thread {thread_id} already triaged, skipping...")
 
         # No more candidates
-        logger.info("Triage complete: no more threads to triage")
+        logger.info("Triage complete")
         return None

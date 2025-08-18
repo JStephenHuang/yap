@@ -42,9 +42,9 @@ class Sanitizer:
     Handles the sanitization of creepypasta stories.
     """
 
-    def __init__(self, csv_path: str, settings: Settings):
+    def __init__(self, csv_path: Path, settings: Settings):
         self.settings = settings
-        self.csv_path = Path(csv_path)
+        self.csv_path = csv_path
         self.ollama = AsyncClient()
         self.settings = settings
         # Load CSV, ensure required columns exist
@@ -142,8 +142,8 @@ class Sanitizer:
         logging.info("Starting content preparation process")
 
         for idx, row in self.df.iterrows():
-            if row.get("status") == "triaged" and not bool(row.get("sanitized", False)):
-                thread_id = row.get("thread_id", "unknown")
+            thread_id = row.get("thread_id", "unknown")
+            if row.get("status") == "triaged" and bool(row.get("sanitized", False)):
                 raw_text = row.get("raw_text", "")
 
                 if not raw_text:
@@ -181,5 +181,9 @@ class Sanitizer:
 
                 except Exception as e:
                     logging.error(f"Error preparing thread {thread_id}: {e}")
+            else:
+                logging.info(
+                    f"Thread {thread_id} already sanitized or status not triaged."
+                )
 
-        logging.info("Content preparation completed.")
+        logging.info("Sanitization completed.")

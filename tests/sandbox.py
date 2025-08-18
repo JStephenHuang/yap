@@ -5,6 +5,8 @@ from creepypastas.services.triage import Triage
 
 import asyncio
 
+from creepypastas.services.tts import Narrator
+
 settings = Settings()
 
 import logging
@@ -36,11 +38,15 @@ def run():
 
     # response = asyncio.run(triage.triage())
 
-    # logger.info("Triage completed.")
+    # sanitizer = Sanitizer(
+    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     settings=settings,
+    # )
 
-    sanitizer = Sanitizer(
+    # asyncio.run(sanitizer.run())
+
+    tts = Narrator(
         csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
         settings=settings,
     )
-
-    asyncio.run(sanitizer.run())
+    asyncio.run(tts.run())
