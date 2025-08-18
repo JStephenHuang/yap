@@ -1,2 +1,2 @@
-from .reddit_scraper import RedditScrapper
+from .scraper import RedditScrapper
 from .triage import Triage
