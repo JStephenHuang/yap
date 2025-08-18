@@ -1,10 +1,10 @@
-import csv
 import logging
 from pathlib import Path
 from typing import Optional
 from ollama import AsyncClient
 import pandas as pd
 from pydantic import BaseModel
+from creepypastas.utils import save
 
 from creepypastas.config import Settings
 
@@ -45,9 +45,7 @@ class Triage:
 
     async def triage(self) -> Optional[str]:
         """
-        Iterate through non-triaged rows, evaluate each, update CSV,
-        and return the first approved thread:
-            {"thread_id": <id>, "raw_text": <text>}
+        Iterate through non-triaged rows, evaluate each, update CSV.
         Returns None if no thread passes.
         """
 
@@ -62,6 +60,8 @@ class Triage:
             if not bool(row.get("triaged", False)):
                 raw_text = row.get("raw_text", None)
                 title = row.get("title", None)
+
+                opinion: OllamaOpinion = OllamaOpinion(approved=False, reasoning="")
 
                 word_count = row.get("word_count", 0)
                 # basic word-count check
@@ -90,32 +90,28 @@ class Triage:
                     logger.info(
                         f"Thread {thread_id}: approved={opinion.approved}, reasoning={opinion.reasoning}"
                     )
-                    approved = opinion.approved
 
                 else:
                     logger.info(f"Thread {thread_id} skipped due to word count")
-                    approved = False
+                    opinion.approved = False
 
                 # Mark triaged
                 self.df.at[idx, "triaged"] = True
+
                 # Set status
-                self.df.at[idx, "status"] = "used" if approved else "rejected"
+                if opinion.approved:
+                    logger.info(f"Thread {row["thread_id"]} approved.")
+                    self.df.at[idx, "status"] = "triaged"
+                else:
+                    logger.info(f"Thread {row["thread_id"]} rejected.")
+                    self.df.at[idx, "status"] = "rejected"
+                    self.df.at[idx, "rejected_reasoning"] = opinion.reasoning
 
                 # Save updated CSV after each decision
-                self._save()
-
-                if approved:
-                    logger.info(f"Thread {row["thread_id"]} selected for video")
-                    return {"thread_id": row["thread_id"], "raw_text": raw_text}
-
-                # otherwise continue to next thread
+                save(self.csv_path, self.df)
             else:
                 logger.info(f"Thread {thread_id} already triaged, skipping...")
 
         # No more candidates
-        logger.info("Triage complete: no threads approved")
+        logger.info("Triage complete: no more threads to triage")
         return None
-
-    def _save(self):
-        """Overwrite the CSV with updated `triaged`/`status` columns."""
-        self.df.to_csv(self.csv_path, index=False, quoting=csv.QUOTE_ALL)

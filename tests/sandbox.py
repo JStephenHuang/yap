@@ -1,5 +1,6 @@
 from creepypastas.config import Settings
-from creepypastas.services.reddit_scraper import RedditScrapper
+from creepypastas.services.sanitizer import Sanitizer
+from creepypastas.services.scraper import RedditScrapper
 from creepypastas.services.triage import Triage
 
 import asyncio
@@ -28,13 +29,18 @@ def run():
 
     # logger.info("Scraping completed.")
 
-    triage = Triage(
-        csv_path=settings.THREADS_PATH / "reddit_threads_20250501_010038.csv",
+    # triage = Triage(
+    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     settings=settings,
+    # )
+
+    # response = asyncio.run(triage.triage())
+
+    # logger.info("Triage completed.")
+
+    sanitizer = Sanitizer(
+        csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
         settings=settings,
     )
 
-    response = asyncio.run(triage.triage())
-
-    print(response)
-
-    logger.info("Triage completed.")
+    asyncio.run(sanitizer.run())
