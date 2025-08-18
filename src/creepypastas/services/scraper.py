@@ -1,21 +1,4 @@
-from typing import Dict, Optional, List
-from pydantic import BaseModel, Field
-
-
-class RedditThread(BaseModel):
-    """Raw Reddit Thread"""
-
-    author: str = Field(..., description="Original author username")
-    url: str = Field(..., description="Original post URL")
-    subreddit: str = Field(..., description="Subreddit the story was posted in")
-    created_utc: float = Field(
-        ..., description="UTC timestamp of when the post was created"
-    )
-    upvote_ratio: Optional[float] = Field(
-        None, description="Ratio of upvotes to downvotes"
-    )
-    score: Optional[int] = Field(None, description="Score (upvotes - downvotes)")
-
+from typing import Dict, List
 
 import csv
 import logging
@@ -106,6 +89,7 @@ class RedditScrapper:
             Dictionary with submission data
         """
         return {
+            # Reddit thread metadata
             "thread_id": submission.id,
             "title": submission.title,
             "raw_text": submission.selftext,
@@ -119,6 +103,28 @@ class RedditScrapper:
             "is_original": submission.is_original_content,
             "is_self": submission.is_self,
             "word_count": len(submission.selftext.split()),
-            "status": None,
+            # Pipeline status
             "triaged": False,
+            "sanitized": False,
+            "narrated": False,
+            "image_populated": False,
+            "youtube_ready": False,
+            "published": False,
+            "status": None,
+            "errors": None,
+            "rejected_reasoning": None,
+            # Sanitization stage
+            "sanitized_text": None,
+            # YouTube metadata
+            "youtube_title": None,
+            "youtube_description": None,
+            # Image generation
+            "image_prompts": None,  # store as JSON string (e.g. '["scene1","scene2"]')
+            "thumbnail_prompt": None,
+            "image_paths": None,  # JSON string list of file paths
+            "thumbnail_path": None,
+            # Narration
+            "audio_path": None,
+            # Final status
+            "used_for_video": False,
         }
