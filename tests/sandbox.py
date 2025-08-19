@@ -1,4 +1,5 @@
 from creepypastas.config import Settings
+from creepypastas.services.imagegen import ImageGen
 from creepypastas.services.sanitizer import Sanitizer
 from creepypastas.services.scraper import RedditScrapper
 from creepypastas.services.triage import Triage
@@ -29,18 +30,17 @@ def run():
     # reddit_scraper = RedditScrapper(settings)
     # reddit_scraper.scrape_stories()
 
-    # logger.info("Scraping completed.")
-
     # triage = Triage(
     #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
     #     settings=settings,
     # )
 
-    # response = asyncio.run(triage.triage())
+    # asyncio.run(triage.triage())
 
     # sanitizer = Sanitizer(
     #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
     #     settings=settings,
+    #     rerun=True,
     # )
 
     # asyncio.run(sanitizer.run())
@@ -48,5 +48,14 @@ def run():
     tts = Narrator(
         csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
         settings=settings,
+        rerun=True,
     )
     asyncio.run(tts.run())
+
+    # imagegen = ImageGen(
+    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     settings=settings,
+    #     rerun=True,
+    # )
+
+    # asyncio.run(imagegen.run())

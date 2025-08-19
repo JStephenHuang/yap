@@ -30,7 +30,9 @@ class OllamaYouTubeTitle(BaseModel):
 
 
 class OllamaImagePrompts(BaseModel):
-    image_prompts: list[str]
+    image_1_prompt: str
+    image_2_prompt: str
+    image_3_prompt: str
 
 
 class OllamaThumbnailPrompt(BaseModel):
@@ -42,11 +44,12 @@ class Sanitizer:
     Handles the sanitization of creepypasta stories.
     """
 
-    def __init__(self, csv_path: Path, settings: Settings):
+    def __init__(self, csv_path: Path, settings: Settings, rerun: bool = False):
         self.settings = settings
         self.csv_path = csv_path
         self.ollama = AsyncClient()
         self.settings = settings
+        self.rerun = rerun
         # Load CSV, ensure required columns exist
         self.df = pd.read_csv(self.csv_path)
         for col in [
@@ -54,11 +57,13 @@ class Sanitizer:
             "sanitized",
             "youtube_title",
             "youtube_description",
-            "image_prompts",
+            "image_1_prompt",
+            "image_2_prompt",
+            "image_3_prompt",
             "thumbnail_prompt",
         ]:
             if col not in self.df.columns:
-                self.df[col] = None
+                self.df[col] = ""
         logging.info(f"Loaded {len(self.df)} rows from {self.csv_path}")
 
     # ----------------------
@@ -98,7 +103,7 @@ class Sanitizer:
 
     async def _generate_image_prompts(
         self, story: str, num_images: int = 3
-    ) -> list[str]:
+    ) -> OllamaImagePrompts:
         response = await self.ollama.chat(
             model=self.settings.SANITIZER_LLM_MODEL,
             messages=[
@@ -115,7 +120,7 @@ class Sanitizer:
 
         # Expect numbered list format, split by lines
         result = OllamaImagePrompts.model_validate_json(response.message.content)
-        return result.image_prompts
+        return result
 
     async def _generate_thumbnail_prompt(self, story_sample: str, title: str) -> str:
         response = await self.ollama.chat(
@@ -143,7 +148,11 @@ class Sanitizer:
 
         for idx, row in self.df.iterrows():
             thread_id = row.get("thread_id", "unknown")
-            if row.get("status") == "triaged" and bool(row.get("sanitized", False)):
+            if (
+                row.get("status") == "triaged"
+                and bool(row.get("sanitized", False))
+                or (row.get("status") != "rejected" and self.rerun)
+            ):
                 raw_text = row.get("raw_text", "")
 
                 if not raw_text:
@@ -165,7 +174,9 @@ class Sanitizer:
                     image_prompts = await self._generate_image_prompts(
                         sanitized, num_images=3
                     )
-                    self.df.at[idx, "image_prompts"] = json.dumps(image_prompts)
+                    self.df.at[idx, "image_1_prompt"] = image_prompts.image_1_prompt
+                    self.df.at[idx, "image_2_prompt"] = image_prompts.image_2_prompt
+                    self.df.at[idx, "image_3_prompt"] = image_prompts.image_3_prompt
 
                     # 4. Generate thumbnail prompt
                     thumbnail_prompt = await self._generate_thumbnail_prompt(
@@ -173,7 +184,8 @@ class Sanitizer:
                     )
                     self.df.at[idx, "thumbnail_prompt"] = thumbnail_prompt
 
-                    # self.df.at[idx, "sanitized"] = True
+                    self.df.at[idx, "sanitized"] = True
+                    self.df.at[idx, "status"] = "sanitized"
 
                     # Save progress incrementally
                     save(self.csv_path, self.df)
