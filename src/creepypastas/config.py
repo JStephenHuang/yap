@@ -1,4 +1,4 @@
-import os
+import torch
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -101,16 +101,15 @@ class Settings(BaseSettings):
 
     Requirements:
     - Maximum 100 characters
-    - Include words like "True Horror Story", "Creepypasta", "Scary Story", etc.
     - Hint at the main threat/fear without spoiling it
     - Use power words that create intrigue
-    - Avoid excessive punctuation or ALL CAPS
+    - Make everything lower case and follow it everytime with ...
     - Make it YouTube-friendly (no offensive content)
 
     Examples of good titles:
-    - "The Thing in My Basement | True Horror Story"
-    - "I Found Something Terrifying in My Attic | Creepypasta"
-    - "The Midnight Visitor | Scary True Story"
+    - "the thing in my basement..."
+    - "i found something terrifying in my attic..."
+    - "the midnight visitor..."
 
     Respond with a JSON object in the following format:
     {{
@@ -119,33 +118,26 @@ class Settings(BaseSettings):
     """
 
     # Image Prompts Generation
-    IMAGE_PROMPTS_GENERATION_PROMPT: str = """Create {num_images} distinct image prompts for a creepypasta story. These will be used to generate atmospheric images during narration.
+    IMAGE_PROMPTS_GENERATION_PROMPT: str = """Create distinct image prompts for a creepypasta story. These will be used to generate atmospheric images during narration.
 
     Story context:
     ---
     {story}
     ---
 
-    Create {num_images} different scene descriptions that capture key moments or atmospheres from the story. Each should be:
+    Create three different scene descriptions that capture key moments or atmospheres from the story. Each should be:
     - Visually distinct from the others
     - Atmospheric and creepy
     - Suitable for AI image generation
     - Focused on mood/setting rather than specific people
+    - Forget about any text overlay
     - 1-2 sentences each
 
-    Format your response as:
-    1. [First scene description]
-    2. [Second scene description]  
-    3. [Third scene description]
-
-    Focus on environments, shadows, objects, and atmospheric elements rather than character faces or specific people.\
     Respond with a JSON object in the following format:
     {{
-    "image_prompts": [
-        "first creepy image description",
-        "second creepy image description",
-        "third creepy image description"
-    ]
+        "image_1_prompt": "first creepy image description",
+        "image_2_prompt": "second creepy image description",
+        "image_3_prompt": "third creepy image description"
     }}"""
 
     # Thumbnail Prompt Generation
@@ -160,20 +152,33 @@ class Settings(BaseSettings):
 
     The thumbnail should:
     - Be eye-catching and creepy but not too graphic
-    - Work well with bold text overlay
+    - It has to be dark, scary, eerie, and dark/red
     - Have high contrast for visibility
     - Capture the main theme/fear of the story
     - Be suitable for YouTube's guidelines
     - Have a cinematic, professional look
+    - Forget about the text overlay
 
-    Create ONE image prompt (2-3 sentences) that would generate an effective YouTube thumbnail. Focus on atmospheric horror elements, lighting, and composition that would make someone want to click.
+    Create ONE image prompt (1-2 sentences) that would generate an effective YouTube thumbnail. Focus on atmospheric horror elements, lighting, and composition that would make someone want to click.
     Respond with a JSON object in the following format:
     {{
     "thumbnail_prompt": "thumbnail description"
     }}"""
 
     TTS_OUTPUT_PATH: Path = DATA_DIR / "narrations"
-    TTS_SPEAKER_PATH: Path = PROJECT_ROOT / "assets" / "speakers" / "stephen.wav"
+    TTS_SPEAKER_PATH: Path = PROJECT_ROOT / "assets" / "speakers" / "oxley.mp3"
+
+    # Image Generation Settings
+    IMAGEGEN_HEIGHT: int = 1664
+    IMAGEGEN_WIDTH: int = 928
+    IMAGEGEN_MODEL: str = "stabilityai/stable-diffusion-xl-base-1.0"
+    IMAGEGEN_TORCH_DTYPE: torch.dtype = torch.bfloat16
+    IMAGEGEN_TORCH_DEVICE: str = "cuda"
+    IMAGEGEN_OUTPUT_PATH: Path = DATA_DIR / "images"
+    IMAGEGEN_GUIDANCE_SCALE: int = 9
+    IMAGEGEN_INFERENCE_STEPS: int = 75
+
+    GOOGLE_AI_STUDIO_KEY: str = Field(..., env="GOOGLE_AI_STUDIO_KEY")
 
     class Config:
         """Pydantic config for environment variables."""

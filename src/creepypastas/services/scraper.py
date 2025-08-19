@@ -119,9 +119,13 @@ class RedditScrapper:
             "youtube_title": None,
             "youtube_description": None,
             # Image generation
-            "image_prompts": None,  # store as JSON string (e.g. '["scene1","scene2"]')
+            "image_1_prompt": None,
+            "image_2_prompt": None,
+            "image_3_prompt": None,
+            "image_1_path": None,
+            "image_2_path": None,
+            "image_3_path": None,
             "thumbnail_prompt": None,
-            "image_paths": None,  # JSON string list of file paths
             "thumbnail_path": None,
             # Narration
             "audio_path": None,
