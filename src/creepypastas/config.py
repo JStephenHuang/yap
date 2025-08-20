@@ -117,6 +117,25 @@ class Settings(BaseSettings):
     }}
     """
 
+    YOUTUBE_DESCRIPTION_PROMPT: str = """Create a short YouTube video description for this creepypasta story. 
+    The description must be:
+    - only one sentence
+    - simple, creepy, and intriguing
+    - all in lowercase
+    - followed by a clear credit line with the author and the original thread link
+
+    Story sample:
+    ---
+    {story_sample}
+    ---
+
+    Author: {author}
+    Thread link: {thread_link}
+
+    Respond with a JSON object in the following format:
+    {{
+    "youtube_description": "short description with credit"
+    }}"""
     # Image Prompts Generation
     IMAGE_PROMPTS_GENERATION_PROMPT: str = """Create distinct image prompts for a creepypasta story. These will be used to generate atmospheric images during narration.
 
@@ -179,6 +198,22 @@ class Settings(BaseSettings):
     IMAGEGEN_INFERENCE_STEPS: int = 75
 
     GOOGLE_AI_STUDIO_KEY: str = Field(..., env="GOOGLE_AI_STUDIO_KEY")
+
+    YOUTUBE_DEFAULT_TAGS: List[str] = [
+        "creepypasta",
+        "horror stories",
+        "scary stories",
+        "creepy narration",
+        "true horror",
+        "internet horror",
+        "paranormal",
+        "nightmare fuel",
+        "scary pasta",
+    ]
+    YOUTUBE_SCOPES: List[str] = [
+        "https://www.googleapis.com/auth/youtube.upload",
+    ]
+    YOUTUBE_CLIENT_SECRET_FILE: str = Field(..., env="YOUTUBE_CLIENT_SECRET_FILE")
 
     class Config:
         """Pydantic config for environment variables."""

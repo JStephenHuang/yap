@@ -19,3 +19,5 @@ def save(csv_path: Path, df: pd.DataFrame) -> None:
     Save the DataFrame to a CSV file.
     """
     df.to_csv(csv_path, index=False, quoting=csv.QUOTE_ALL)
+
+def 

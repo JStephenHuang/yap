@@ -20,10 +20,12 @@ class Narrator:
     Handles narration of sanitized creepypasta stories.
     """
 
-    def __init__(self, csv_path: Path, settings: Settings, rerun: bool = False):
+    def __init__(
+        self, csv_path: Path, settings: Settings, thread_id: str | None = None
+    ):
         self.settings = settings
         self.csv_path = csv_path
-        self.rerun = rerun
+        self.thread_id = thread_id
         # Load CSV, ensure required columns exist
         self.df = pd.read_csv(csv_path)
 
@@ -48,7 +50,7 @@ class Narrator:
             speaker_wav=self.settings.TTS_SPEAKER_PATH,
             language="en",
         )
-
+    
     async def run(self):
         logging.info("Starting narration process")
 
