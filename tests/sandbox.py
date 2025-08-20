@@ -3,10 +3,12 @@ from creepypastas.services.imagegen import ImageGen
 from creepypastas.services.sanitizer import Sanitizer
 from creepypastas.services.scraper import RedditScrapper
 from creepypastas.services.triage import Triage
+from creepypastas.services.ffmpeg import Ffmpeg
 
 import asyncio
 
 from creepypastas.services.tts import Narrator
+from creepypastas.services.ytapi import YouTubeAPI
 
 settings = Settings()
 
@@ -40,22 +42,38 @@ def run():
     # sanitizer = Sanitizer(
     #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
     #     settings=settings,
-    #     rerun=True,
+    #     thread_id="1mt62jp",
     # )
 
-    # asyncio.run(sanitizer.run())
+    # sanitizer.run()
 
-    tts = Narrator(
-        csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
-        settings=settings,
-        rerun=True,
-    )
-    asyncio.run(tts.run())
-
-    # imagegen = ImageGen(
+    # tts = Narrator(
     #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
     #     settings=settings,
     #     rerun=True,
     # )
+    # asyncio.run(tts.run())
+
+    # imagegen = ImageGen(
+    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     settings=settings,
+    #     thread_id="1mt62jp",
+    # )
 
     # asyncio.run(imagegen.run())
+
+    ffmpeg = Ffmpeg(
+        csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+        settings=settings,
+        thread_id="1mt62jp",
+    )
+
+    ffmpeg.run()
+
+    # ytapi = YouTubeAPI(
+    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     settings=settings,
+    #     thread_id="1mt62jp",
+    # )
+
+    # ytapi.run()

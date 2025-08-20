@@ -118,6 +118,7 @@ class RedditScrapper:
             # YouTube metadata
             "youtube_title": None,
             "youtube_description": None,
+            "youtube_link": None,
             # Image generation
             "image_1_prompt": None,
             "image_2_prompt": None,
@@ -127,6 +128,7 @@ class RedditScrapper:
             "image_3_path": None,
             "thumbnail_prompt": None,
             "thumbnail_path": None,
+            "video_path": None,
             # Narration
             "audio_path": None,
             # Final status
