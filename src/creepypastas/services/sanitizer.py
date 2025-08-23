@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from pathlib import Path
 
@@ -7,7 +6,7 @@ from ollama import AsyncClient
 from pydantic import BaseModel
 
 from creepypastas.config import Settings
-from creepypastas.utils import save
+from creepypastas.utils import save, find_thread
 
 
 class OllamaSanitizedText(BaseModel):
@@ -32,6 +31,9 @@ class OllamaThumbnailPrompt(BaseModel):
     thumbnail_prompt: str
 
 
+logger = logging.getLogger(__name__)
+
+
 class Sanitizer:
     """
     Handles the sanitization of creepypasta stories.
@@ -42,7 +44,6 @@ class Sanitizer:
         csv_path: Path,
         settings: Settings,
         thread_id: str | None = None,
-        pipeline: bool = False,
     ):
         self.csv_path = csv_path
         self.settings = settings
@@ -50,19 +51,8 @@ class Sanitizer:
         self.ollama = AsyncClient()
         # Load CSV, ensure required columns exist
         self.df = pd.read_csv(self.csv_path)
-        for col in [
-            "sanitized_text",
-            "sanitized",
-            "youtube_title",
-            "youtube_description",
-            "image_1_prompt",
-            "image_2_prompt",
-            "image_3_prompt",
-            "thumbnail_prompt",
-        ]:
-            if col not in self.df.columns:
-                self.df[col] = None
-        logging.info(f"Loaded {len(self.df)} rows from {self.csv_path}")
+
+        logger.info(f"Loaded {len(self.df)} rows from {self.csv_path}")
 
     # ----------------------
     # Ollama helpers
@@ -79,7 +69,7 @@ class Sanitizer:
             format="json",
             options={"temperature": self.settings.SANITIZER_LLM_TEMPERATURE},
         )
-        result = OllamaSanitizedText.model_validate_json(response["message"]["content"])
+        result = OllamaSanitizedText.model_validate_json(response.message.content)
         return result.sanitized_text
 
     def _generate_title(self, story_sample: str) -> str:
@@ -96,7 +86,7 @@ class Sanitizer:
             format="json",
             options={"temperature": 0.5},
         )
-        result = OllamaYouTubeTitle.model_validate_json(response["message"]["content"])
+        result = OllamaYouTubeTitle.model_validate_json(response.message.content)
         return result.youtube_title
 
     def _generate_description(
@@ -119,9 +109,7 @@ class Sanitizer:
             format="json",
             options={"temperature": 0.6},
         )
-        result = OllamaYouTubeDescription.model_validate_json(
-            response["message"]["content"]
-        )
+        result = OllamaYouTubeDescription.model_validate_json(response.message.content)
         return result.youtube_description
 
     def _generate_image_prompts(
@@ -141,7 +129,7 @@ class Sanitizer:
             options={"temperature": 0.6},
         )
 
-        result = OllamaImagePrompts.model_validate_json(response["message"]["content"])
+        result = OllamaImagePrompts.model_validate_json(response.message.content)
         return result
 
     def _generate_thumbnail_prompt(self, story_sample: str, title: str) -> str:
@@ -159,18 +147,23 @@ class Sanitizer:
             format="json",
             options={"temperature": 0.6},
         )
-        result = OllamaThumbnailPrompt.model_validate_json(
-            response["message"]["content"]
-        )
+        result = OllamaThumbnailPrompt.model_validate_json(response.message.content)
         return result.thumbnail_prompt
 
-    def _process_thread(self, idx: int, thread_id: str) -> None:
-        row = self.df.iloc[idx]
-        raw_text = row.get("raw_text")
-        if not raw_text:
-            raise Exception(f"No raw_text found for thread {thread_id}")
+    def _process_thread(self, row: pd.Series, idx: int, thread_id: str) -> None:
 
-        logging.info(f"Processing thread {thread_id}...")
+        status = row.get("status")
+        triaged = bool(row.get("triaged"))
+
+        if status == "rejected" or not triaged:
+            logger.info(
+                f"Thread {thread_id}'s status: {status}, triaged: {triaged}, skipping."
+            )
+            return
+
+        raw_text = row.get("raw_text")
+
+        logger.info(f"Processing thread {thread_id}...")
 
         # 1. Sanitize story
         sanitized_text = self._sanitize_text(raw_text)
@@ -201,7 +194,7 @@ class Sanitizer:
 
         # Save progress incrementally
         save(self.csv_path, self.df)
-        logging.info(f"Thread {thread_id} prepared successfully.")
+        logger.info(f"Thread {thread_id} prepared successfully.")
 
     # ----------------------
     # Main runner
@@ -209,36 +202,20 @@ class Sanitizer:
 
     def run(self) -> None:
 
-        logging.info("Starting content preparation process")
+        logger.info("Starting content preparation process")
         try:
             if self.thread_id:
                 # Process only the specified thread_id
-                row_idx = self.df.index[self.df["thread_id"] == self.thread_id].tolist()
-                if not row_idx:
-                    logging.warning(f"No row found for thread {self.thread_id}")
-                    return
+                row, idx = find_thread(self.thread_id, self.df)
 
-                idx = row_idx[0]
-                row = self.df.iloc[idx]
-
-                if row.get("status") != "rejected":
-                    self._process_thread(idx, self.thread_id)
-                else:
-                    logging.info(
-                        f"Thread {self.thread_id} already sanitized or status not triaged."
-                    )
+                self._process_thread(row, idx, self.thread_id)
                 return
 
             # Process all eligible threads
             for idx, row in self.df.iterrows():
-                thread_id = row.get("thread_id", f"thread_{idx}")
-                if row.get("status") == "triaged" and bool(row.get("sanitized", False)):
-                    self._process_thread(idx, thread_id)
-                else:
-                    logging.info(
-                        f"Thread {thread_id} already sanitized or status not triaged."
-                    )
-            logging.info("Starting content preparation process")
+                thread_id = row.get("thread_id")
+
+                self._process_thread(row, idx, thread_id)
 
         except Exception as e:
-            logging.error(f"Error during sanitization: {e}")
+            logger.error(f"Error during sanitization: {e}")

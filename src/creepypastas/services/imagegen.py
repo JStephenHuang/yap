@@ -4,11 +4,11 @@ import logging
 import pandas as pd
 from google import genai
 from google.genai import types
-from PIL import Image
-from io import BytesIO
 
 from creepypastas.config import Settings
-from creepypastas.utils import save
+from creepypastas.utils import find_thread, save
+
+logger = logging.getLogger(__name__)
 
 
 class ImageGen:
@@ -17,11 +17,13 @@ class ImageGen:
         csv_path: Path,
         settings: Settings,
         thread_id: str | None = None,
+        update: bool = False,
     ):
         self.csv_path = csv_path
         self.settings = settings
         self.thread_id = thread_id
         self.google_client = genai.Client(api_key=self.settings.GOOGLE_AI_STUDIO_KEY)
+        self.update = update
         # Load CSV, ensure required columns exist
         self.df = pd.read_csv(csv_path)
 
@@ -30,7 +32,7 @@ class ImageGen:
             if col not in self.df.columns:
                 self.df[col] = ""
 
-        logging.info(f"Loaded {len(self.df)} rows from {self.csv_path}")
+        logger.info(f"Loaded {len(self.df)} rows from {self.csv_path}")
 
     def _generate_image(self, prompt: str, output_path: Path) -> None:
         response = self.google_client.models.generate_images(
@@ -40,90 +42,84 @@ class ImageGen:
         )
 
         if not response.generated_images:
-            raise ValueError("No images generated")
+            raise Exception("No images generated")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         for generated_image in response.generated_images:
             generated_image.image.save(str(output_path))
 
-    def _generate_images_for_thread(
-        self, idx: int, thread_id: str, is_update: bool = False
-    ) -> None:
-        row = self.df.iloc[idx]
-        try:
-            prompts = [
-                row.get("image_1_prompt"),
-                row.get("image_2_prompt"),
-                row.get("image_3_prompt"),
-            ]
+    def _process_thread(self, idx: int, row: pd.Series, thread_id: str) -> None:
+        # generate images for different scenes
+        status = row.get("status")
+        sanitized = bool(row.get("sanitized"))
 
-            for i, prompt in enumerate(prompts, start=1):
-                if not prompt:
-                    logging.warning(
-                        f"Prompt {i} is missing for thread {thread_id}, skipping."
-                    )
-                    continue
+        if not sanitized or status == "rejected":
+            logger.info(
+                f"Thread {thread_id}'s status: {status}, sanitized: {sanitized}, skipping."
+            )
+            return
 
-                output_path = self.settings.DATA_DIR / thread_id / f"scene_{i}.png"
-                self._generate_image(prompt, output_path)
-                self.df.at[idx, f"image_{i}_path"] = str(output_path)
+        prompts = [
+            row.get("image_1_prompt"),
+            row.get("image_2_prompt"),
+            row.get("image_3_prompt"),
+        ]
 
-            thumbnail_prompt = row.get("thumbnail_prompt")
-            if thumbnail_prompt:
-                logging.info(
-                    f"{'Updating' if is_update else 'Generating'} thumbnail for thread {thread_id}..."
+        for i, prompt in enumerate(prompts, start=1):
+            scene_output_path = self.settings.DATA_DIR / thread_id / f"scene_{i}.png"
+            scene_output_path_exists = scene_output_path.exists()
+
+            if scene_output_path_exists and not self.update:
+                logger.info(
+                    f"Image {i} already exists for thread {thread_id}, update: {self.update} skipping."
                 )
-                output_path = self.settings.DATA_DIR / thread_id / "thumbnail.png"
-                self._generate_image(thumbnail_prompt, output_path)
-                self.df.at[idx, "thumbnail_path"] = str(output_path)
+                continue
 
-            # Mark as image-populated
-            self.df.at[idx, "image_populated"] = True
-
-            # Save progress incrementally
-            save(self.csv_path, self.df)
-            logging.info(
-                f"Images and thumbnail {'updated' if is_update else 'generated'} for thread {thread_id}"
+            logger.info(
+                f"{'Updating' if self.update and scene_output_path_exists else 'Generating'} image {i} for thread {thread_id}..."
             )
 
-        except Exception as e:
-            logging.error(
-                f"Error {'updating' if is_update else 'generating'} images for thread {thread_id}: {e}"
-            )
+            self._generate_image(prompt, scene_output_path)
+            self.df.at[idx, f"image_{i}_path"] = str(scene_output_path)
+
+        # generate thumbnail
+        thumbnail_prompt = row.get("thumbnail_prompt")
+        thumbnail_output_path = self.settings.DATA_DIR / thread_id / "thumbnail.png"
+        thumbnail_output_path_exists = thumbnail_output_path.exists()
+
+        if thumbnail_output_path_exists and not self.update:
+            logger.info(f"Thumbnail already exists for thread {thread_id}, skipping.")
+            return
+
+        logger.info(
+            f"{'Updating' if self.update and thumbnail_output_path_exists else 'Generating'} thumbnail for thread {thread_id}..."
+        )
+
+        self._generate_image(thumbnail_prompt, thumbnail_output_path)
+        self.df.at[idx, "thumbnail_path"] = str(thumbnail_output_path)
+
+        save(self.csv_path, self.df)
+
+        logger.info(f"Images populated and saved for thread {thread_id}")
 
     def run(self) -> None:
-        logging.info("Starting image generation process")
+        logger.info("Starting image generation process")
         try:
             if self.thread_id:
-                row_idx = self.df.index[self.df["thread_id"] == self.thread_id].tolist()
-                if not row_idx:
-                    logging.warning(f"No row found for thread {self.thread_id}")
-                    return
+                row, idx = find_thread(self.thread_id, self.df)
 
-                idx = row_idx[0]
-                row = self.df.iloc[idx]
+                self._process_thread(row, idx, thread_id)
 
-                if bool(row.get("image_populated")) and row.get("status") != "rejected":
-                    logging.info(f"Updating images for thread {self.thread_id}...")
-                    self._generate_images_for_thread(
-                        idx, self.thread_id, is_update=True
-                    )
                 return
 
             for idx, row in self.df.iterrows():
-                thread_id = row.get("thread_id", f"row{idx}")
+                thread_id = row.get("thread_id")
 
-                if row.get("status") == "sanitized" and not bool(
-                    row.get("image_populated")
-                ):
-                    logging.info(f"Generating images for thread {thread_id}...")
-                    self._generate_images_for_thread(idx, thread_id)
-                else:
-                    logging.info(
-                        f"Thread {thread_id} is either not sanitized or already image-populated, skipping."
-                    )
+                self._process_thread(row, idx, thread_id)
+
         except Exception as e:
-            logging.error(f"Error in image generation process: {e}")
+            logger.error(f"Error in image generation process: {e}")
 
-        logging.info("Image generation process completed.")
+        logger.info("Image generation process completed.")
+        return

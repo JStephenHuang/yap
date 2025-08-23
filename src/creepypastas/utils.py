@@ -20,4 +20,20 @@ def save(csv_path: Path, df: pd.DataFrame) -> None:
     """
     df.to_csv(csv_path, index=False, quoting=csv.QUOTE_ALL)
 
-def 
+
+def find_thread(thread_id: str, df: pd.DataFrame) -> tuple[pd.Series, int]:
+    """
+    Find a thread by its ID in the DataFrame.
+
+    Returns:
+        idx: The index of the thread (row).
+        data: The data of the thread (row).
+    """
+    result = df[df["thread_id"] == thread_id]
+    if result.empty:
+        raise Exception(f"Thread {thread_id} not found in DataFrame")
+
+    row = result.iloc[0]
+    idx = result.index[0]
+
+    return row, idx

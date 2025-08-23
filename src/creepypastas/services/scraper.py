@@ -111,7 +111,6 @@ class RedditScrapper:
             "youtube_ready": False,
             "published": False,
             "status": None,
-            "errors": None,
             "rejected_reasoning": None,
             # Sanitization stage
             "sanitized_text": None,

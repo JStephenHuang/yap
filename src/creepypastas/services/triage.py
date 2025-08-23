@@ -43,7 +43,39 @@ class Triage:
 
         logger.info(f"Loaded {len(self.df)} threads from {self.csv_path}")
 
-    async def triage(self) -> Optional[str]:
+    def _evaluate_thread(self, row) -> OllamaOpinion:
+        """Evaluate a single thread using the Ollama LLM."""
+        word_count = row.get("word_count", 0)
+
+        if (word_count < self.settings.MIN_WORDS) or (
+            word_count > self.settings.MAX_WORDS
+        ):
+            return OllamaOpinion(
+                approved=False,
+                reasoning=f"Word count {word_count} outside bounds",
+            )
+
+        raw_text = row.get("raw_text", None)
+        title = row.get("title", None)
+
+        response = self.ollama.chat(
+            model=self.settings.TRIAGE_LLM_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": self.settings.TRIAGE_LLM_PROMPT.format(
+                        text=raw_text,
+                        title=title,
+                    ),
+                }
+            ],
+            format="json",
+            options={"temperature": self.settings.TRIAGE_LLM_TEMPERATURE},
+        )
+
+        return OllamaOpinion.model_validate_json(response.message.content)
+
+    def triage(self):
         """
         Iterate through non-triaged rows, evaluate each, update CSV.
         Returns None if no thread passes.
@@ -53,64 +85,29 @@ class Triage:
 
         for idx, row in self.df.iterrows():
             # If already triaged, skip
-            thread_id = row.get("thread_id", None)
+            thread_id = row.get("thread_id")
 
             logger.info(f"Checking thread {thread_id}")
 
-            if not bool(row.get("triaged", False)):
-                raw_text = row.get("raw_text", None)
-                title = row.get("title", None)
-
-                opinion: OllamaOpinion = OllamaOpinion(approved=False, reasoning="")
-
-                word_count = row.get("word_count", 0)
-                # basic word-count check
-                if self.settings.MIN_WORDS <= word_count <= self.settings.MAX_WORDS:
-                    # ask Ollama to make final pass/fail decision
-                    logger.info(
-                        f"Thread {thread_id} passed word count and llm is evaluating thread..."
-                    )
-                    response = await self.ollama.chat(
-                        model=self.settings.TRIAGE_LLM_MODEL,
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": self.settings.TRIAGE_LLM_PROMPT.format(
-                                    text=raw_text,
-                                    title=title,
-                                ),
-                            }
-                        ],
-                        format="json",
-                        options={"temperature": self.settings.TRIAGE_LLM_TEMPERATURE},
-                    )
-                    opinion = OllamaOpinion.model_validate_json(
-                        response.message.content
-                    )
-                    logger.info(
-                        f"Thread {thread_id}: approved={opinion.approved}, reasoning={opinion.reasoning}"
-                    )
-
-                else:
-                    logger.info(f"Thread {thread_id} skipped due to word count")
-                    opinion.approved = False
-
-                # Mark triaged
-                self.df.at[idx, "triaged"] = True
-
-                # Set status
-                if opinion.approved:
-                    logger.info(f"Thread {row.get('thread_id')} approved.")
-                    self.df.at[idx, "status"] = "triaged"
-                else:
-                    logger.info(f"Thread {row.get('thread_id')} rejected.")
-                    self.df.at[idx, "status"] = "rejected"
-                    self.df.at[idx, "rejected_reasoning"] = opinion.reasoning
-
-                # Save updated CSV after each decision
-                save(self.csv_path, self.df)
-            else:
+            if bool(row.get("triaged")):
                 logger.info(f"Thread {thread_id} already triaged, skipping...")
+                continue
+
+            opinion = self._evaluate_thread(row)
+
+            # Set status
+            if opinion.approved:
+                logger.info(f"Thread {thread_id} approved.")
+                self.df.at[idx, "status"] = "triaged"
+            else:
+                logger.info(f"Thread {thread_id} rejected.")
+                self.df.at[idx, "status"] = "rejected"
+                self.df.at[idx, "rejected_reasoning"] = opinion.reasoning
+
+            self.df.at[idx, "triaged"] = True
+
+            # Save updated CSV after each decision
+            save(self.csv_path, self.df)
 
         # No more candidates
         logger.info("Triage complete")

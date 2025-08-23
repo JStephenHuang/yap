@@ -29,51 +29,54 @@ def run():
     logger = logging.getLogger(__name__)
     logger.info("Starting sandbox...")
 
+    thread_id = "1mt62jp"
+    csv_path = settings.THREADS_PATH / "reddit_threads_20250818_004221.csv"
+
     # reddit_scraper = RedditScrapper(settings)
     # reddit_scraper.scrape_stories()
 
     # triage = Triage(
-    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     csv_path=csv_path,
     #     settings=settings,
     # )
 
     # asyncio.run(triage.triage())
 
     # sanitizer = Sanitizer(
-    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     csv_path=csv_path,
     #     settings=settings,
-    #     thread_id="1mt62jp",
+    #     thread_id=thread_id,
     # )
 
     # sanitizer.run()
 
     # tts = Narrator(
-    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     csv_path=csv_path,
     #     settings=settings,
     #     rerun=True,
     # )
     # asyncio.run(tts.run())
 
     # imagegen = ImageGen(
-    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    #     csv_path=csv_path,
     #     settings=settings,
-    #     thread_id="1mt62jp",
+    #     thread_id=thread_id,
     # )
 
     # asyncio.run(imagegen.run())
 
-    ffmpeg = Ffmpeg(
-        csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
-        settings=settings,
-        thread_id="1mt62jp",
-    )
-
-    ffmpeg.run()
-
-    # ytapi = YouTubeAPI(
-    #     csv_path=settings.THREADS_PATH / "reddit_threads_20250818_004221.csv",
+    # ffmpeg = Ffmpeg(
+    #     csv_path=csv_path,
     #     settings=settings,
-    #     thread_id="1mt62jp",
+    #     thread_id=thread_id,
     # )
 
-    # ytapi.run()
+    # ffmpeg.run()
+
+    ytapi = YouTubeAPI(
+        csv_path=csv_path,
+        settings=settings,
+        thread_id=thread_id,
+    )
+
+    ytapi.run()

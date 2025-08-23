@@ -5,6 +5,9 @@ import ffmpeg
 import pandas as pd
 
 from creepypastas.config import Settings
+from creepypastas.utils import find_thread, save
+
+logger = logging.getLogger(__name__)
 
 
 class Ffmpeg:
@@ -13,43 +16,32 @@ class Ffmpeg:
         csv_path: Path,
         settings: Settings,
         thread_id: str | None = None,
+        update: bool = False,
     ):
         self.csv_path = csv_path
         self.settings = settings
         self.df = pd.read_csv(csv_path)
         self.thread_id = thread_id
+        self.update = update
 
-    def _get_paths_for_thread(
-        self, thread_id: str
-    ) -> tuple[list[str] | None, str | None]:
+    def _get_paths_for_thread(self, row: pd.Series) -> tuple[list[str], str]:
         """Return image paths and audio path for a given thread_id."""
-        row = self.df.loc[self.df["thread_id"] == thread_id]
-
-        row = row.iloc[0]  # get first match
-
         image_paths = []
 
         for i in range(1, 4):
             image_path = row.get(f"image_{i}_path")
 
-            if image_path == None:
-                raise Exception(f"Image path {i} none")
+            if image_path is None:
+                raise Exception(f"Image path {i} is None")
 
-            image_paths.append(str(Path(image_path).resolve()))
+            image_paths.append(str(image_path))
 
         audio_path = row.get("audio_path")
 
-        # Filter out missing image paths
-        image_paths = [
-            str(Path(p).resolve()) for p in image_paths if p and Path(p).exists()
-        ]
+        if audio_path is None:
+            raise Exception("Audio path is None")
 
-        if audio_path:
-            audio_path = str(Path(audio_path).resolve())
-        else:
-            audio_path = None
-
-        return image_paths, audio_path
+        return image_paths, str(audio_path)
 
     def _merge_media(
         self,
@@ -57,15 +49,21 @@ class Ffmpeg:
         output_dir: Path,
         image_paths: list[str],
         audio_path: str,
-    ) -> None:
-        if not image_paths or not audio_path or not Path(audio_path).exists():
-            raise Exception(f"Missing media for thread {thread_id}, skipping.")
+    ) -> str:
 
-        if len(image_paths) == 0:
-            raise Exception(f"Missing media for thread {thread_id}, skipping.")
+        video_output_path = output_dir / "final_video.mp4"
+        video_output_path_exists = video_output_path.exists()
 
-        fade_duration = 2  # seconds
-        black_duration = 1  # seconds
+        if video_output_path_exists and not self.update:
+            logger.info(f"Video already exists for thread {thread_id}, skipping.")
+            return
+
+        logger.info(
+            f"{'Updating' if self.update and video_output_path_exists else 'Generating'} video for thread {thread_id}..."
+        )
+
+        fade_duration = 1.5  # seconds
+        black_duration = 2  # seconds
         width, height = 1280, 720
         framerate = 30
         pix_fmt = "yuv420p"
@@ -114,54 +112,61 @@ class Ffmpeg:
 
         # Add audio
         audio = ffmpeg.input(audio_path)
-        output_video = output_dir / "final_video.mp4"
 
         ffmpeg.output(
             video,
             audio,
-            str(output_video),
+            str(video_output_path),
             vcodec="h264_nvenc",
             acodec="aac",
             pix_fmt=pix_fmt,
             shortest=None,
         ).run(overwrite_output=True)
 
-        self.csv_path
-        logging.info(f"Video created for thread {thread_id}: {output_video}")
+        return str(video_output_path)
+
+    def _process_thread(self, row: pd.Series, idx: int, thread_id: str) -> None:
+        status = row.get("status")
+        image_populated = bool(row.get("image_populated"))
+
+        if not image_populated or status == "rejected":
+            logger.warning(
+                f"Thread {thread_id}'s status: {status}, image_populated: {image_populated}, skipping."
+            )
+            return
+
+        output_dir = self.settings.DATA_DIR / thread_id
+        logger.info(f"pegging thread {thread_id}...")
+
+        image_paths, audio_path = self._get_paths_for_thread(row)
+
+        video_output_path = self._merge_media(
+            idx, thread_id, output_dir, image_paths, audio_path
+        )
+
+        self.df.at[idx, "status"] = "video_populated"  # this could cause errors...
+        self.df.at[idx, "video_path"] = video_output_path
+
+        save(self.csv_path, self.df)
+        logger.info(f"Video saved for thread {thread_id}: {video_output_path}")
 
     def run(self) -> None:
         try:
             if self.thread_id:
                 # Process only the specified thread_id
-                row = self.df.loc[self.df["thread_id"] == self.thread_id]
-                if row.empty:
-                    logging.warning(f"No row found for thread {self.thread_id}")
-                    return
-                row = row.iloc[0]
-                if bool(row.get("image_populated")) and (
-                    row.get("status") != "rejected"
-                ):
-                    output_dir = self.settings.DATA_DIR / self.thread_id
-                    logging.info(f"pegging thread {self.thread_id}...")
-                    image_paths, audio_path = self._get_paths_for_thread(self.thread_id)
-                    self._merge_media(
-                        self.thread_id, output_dir, image_paths, audio_path
-                    )
+                row, idx = find_thread(self.thread_id, self.df)
+
+                self._process_thread(row, idx, self.thread_id)
 
                 return
 
             # Process all eligible threads
             for idx, row in self.df.iterrows():
-                thread_id = row.get("thread_id", f"thread_{idx}")
-                if row.get("status") == "image_populated" and bool(
-                    row.get("image_populated")
-                ):
-                    output_dir = self.settings.DATA_DIR / thread_id
-                    logging.info(f"pegging thread {thread_id}...")
-                    image_paths, audio_path = self._get_paths_for_thread(thread_id)
-                    self._merge_media(thread_id, output_dir, image_paths, audio_path)
+                thread_id = row.get("thread_id")
+
+                self._process_thread(row, idx, thread_id)
 
         except ffmpeg.Error as e:
-            logging.error(f"ffmpeg error for thread {thread_id}: {e}")
+            logger.error(f"ffmpeg error for thread {thread_id}: {e}")
         except Exception as e:
-            logging.error(f"Error for thread {thread_id}: {e}")
+            logger.error(f"Error for thread {thread_id}: {e}")

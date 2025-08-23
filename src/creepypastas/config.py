@@ -214,6 +214,7 @@ class Settings(BaseSettings):
         "https://www.googleapis.com/auth/youtube.upload",
     ]
     YOUTUBE_CLIENT_SECRET_FILE: str = Field(..., env="YOUTUBE_CLIENT_SECRET_FILE")
+    YOUTUBE_CHANNEL_ID: str = Field(..., env="YOUTUBE_CHANNEL_ID")
 
     class Config:
         """Pydantic config for environment variables."""
