@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from typing import Optional
-from ollama import AsyncClient
+from ollama import Client
 import pandas as pd
 from pydantic import BaseModel
 from creepypastas.utils import save
@@ -36,7 +36,7 @@ class Triage:
         settings: Settings,
     ):
         self.csv_path = csv_path
-        self.ollama = AsyncClient()
+        self.ollama = Client()
         self.settings = settings
         # Load CSV, ensure required columns exist
         self.df = pd.read_csv(self.csv_path)
@@ -45,7 +45,7 @@ class Triage:
 
     def _evaluate_thread(self, row) -> OllamaOpinion:
         """Evaluate a single thread using the Ollama LLM."""
-        word_count = row.get("word_count", 0)
+        word_count = row.get("word_count")
 
         if (word_count < self.settings.MIN_WORDS) or (
             word_count > self.settings.MAX_WORDS
@@ -74,6 +74,22 @@ class Triage:
         )
 
         return OllamaOpinion.model_validate_json(response.message.content)
+
+    def get_approved_thread(self) -> str | None:
+        """
+        Get one triaged thread's ID.
+
+        """
+        triaged_threads = self.df[self.df["status"] == "triaged"]
+
+        if triaged_threads.empty:
+            return None
+
+        first_thread = triaged_threads.iloc[0]
+
+        print(first_thread.get("word_count"), first_thread.get("raw_text"))
+
+        return first_thread["thread_id"]
 
     def triage(self):
         """

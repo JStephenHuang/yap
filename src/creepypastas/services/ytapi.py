@@ -153,6 +153,7 @@ class YouTubeAPI:
         self.df.at[idx, "youtube_video_id"] = video_id
         self.df.at[idx, "youtube_link"] = f"https://www.youtube.com/watch?v={video_id}"
         self.df.at[idx, "status"] = "uploaded"
+        self.df.at[idx, "used_for_video"] = True
 
         save(self.csv_path, self.df)
 

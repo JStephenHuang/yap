@@ -1,8 +1,14 @@
+from io import BytesIO
 import logging
 from pathlib import Path
 
+import re
 import pandas as pd
+from pydub import AudioSegment
+
+
 from TTS.api import TTS
+from RealtimeTTS import TextToAudioStream, _load_coqui_engine
 
 from creepypastas.config import Settings
 from creepypastas.utils import find_thread, save
@@ -26,10 +32,24 @@ class Narrator:
 
         logger.info(f"Loaded {len(self.df)} rows from {self.csv_path}")
 
-        # Load TTS model once
-        self.tts = TTS(
-            model_name="tts_models/multilingual/multi-dataset/xtts_v2",
-        ).to("cuda")
+        self.tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2").to(
+            "cuda"
+        )
+
+    def _chunk_by_sentence(self, text: str) -> list[str]:
+        """Split text into chunks by sentence and clean up artifacts."""
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+
+        cleaned = []
+        for sentence in sentences:
+            s = sentence.replace("\n", " ").replace("\t", " ").strip()
+
+            s = re.sub(r"^[\W_]+", "", s)
+
+            if s and len(s) > 3:
+                cleaned.append(s)
+
+        return cleaned
 
     def _narrate_story(self, sanitized_text: str, output_dir: Path) -> str:
         """Generate narration for one story and return audio path."""
@@ -37,11 +57,16 @@ class Narrator:
 
         logger.info(f"Sanitized text: {sanitized_text}")
 
+        print(f"input: {self._chunk_by_sentence(sanitized_text)}")
+
+        clean_text = " ".join(self._chunk_by_sentence(sanitized_text))
+
         self.tts.tts_to_file(
-            text=sanitized_text,
+            text=clean_text,
             file_path=str(output_dir),
             speaker_wav=self.settings.TTS_SPEAKER_PATH,
             language="en",
+            split_sentences=True,
         )
 
     def _process_thread(self, row: pd.Series, idx: int, thread_id: str) -> None:
@@ -59,10 +84,12 @@ class Narrator:
         output_dir = self.settings.DATA_DIR / thread_id / "narration.wav"
 
         self._narrate_story(sanitized_text, output_dir)
+        # self._narrate_by_chunk(sanitized_text, output_dir)
         logger.info(f"Audio saved to {output_dir}")
 
         self.df.at[idx, "audio_path"] = output_dir
         self.df.at[idx, "narrated"] = True
+        self.df.at[idx, "status"] = "narrated"
 
         save(self.csv_path, self.df)
 
@@ -86,6 +113,6 @@ class Narrator:
                 return  # break after first narration...
 
         except Exception as e:
-            logger.error(f"Error narrating thread {thread_id}: {e}")
+            logger.error(f"Error narrating thread {e}")
 
         logger.info("Narration process completed.")

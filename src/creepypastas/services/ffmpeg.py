@@ -49,6 +49,8 @@ class Ffmpeg:
         output_dir: Path,
         image_paths: list[str],
         audio_path: str,
+        title: str,
+        credit: str,
     ) -> str:
 
         video_output_path = output_dir / "final_video.mp4"
@@ -62,37 +64,74 @@ class Ffmpeg:
             f"{'Updating' if self.update and video_output_path_exists else 'Generating'} video for thread {thread_id}..."
         )
 
-        fade_duration = 1.5  # seconds
-        black_duration = 2  # seconds
+        fade_duration = 2
+        intro_duration = 5
         width, height = 1280, 720
-        framerate = 30
+        framerate = 25
         pix_fmt = "yuv420p"
+        font_path = str(self.settings.FFMPEG_FONT)
+        black_image_path = str(self.settings.ASSETS_DIR / "black_img.png")
 
-        # Black intro/outro
-        black_intro = ffmpeg.input(
-            f"color=black:s={width}x{height}:d={black_duration}:r={framerate}",
-            f="lavfi",
-        )
-        black_outro = ffmpeg.input(
-            f"color=black:s={width}x{height}:d={black_duration}:r={framerate}",
-            f="lavfi",
-        )
-
-        # Get audio duration
         probe = ffmpeg.probe(audio_path)
-        audio_duration = float(probe["format"]["duration"])
 
+        audio_duration = float(probe["format"]["duration"])
         image_duration = audio_duration / len(image_paths)
 
-        # Prepare image streams with scale, pad, setsar, fade in/out
+        print(f"Audio duration: {audio_duration}, Image duration: {image_duration}")
+
+        # outro = (
+        #     ffmpeg.input(
+        #         black_image_path,
+        #         t=fade_duration,
+        #         framerate=framerate + 1,
+        #     )
+        #     .filter("scale", w=width, h=height, force_original_aspect_ratio="increase")
+        #     .filter("format", pix_fmt)
+        # )
+        # black_intro = (
+        #     ffmpeg.input(
+        #         black_image_path,
+        #         t=intro_duration,
+        #         framerate=framerate,
+        #     )
+        #     .filter(
+        #         "drawtext",
+        #         fontfile=font_path,
+        #         text=title,
+        #         fontcolor="white",
+        #         fontsize=32,
+        #         x="(w-text_w)/2",
+        #         y="(h-text_h)/2",
+        #         enable="between(t,0.5,4)",
+        #     )
+        #     .filter(
+        #         "drawtext",
+        #         fontfile=font_path,
+        #         text=credit,
+        #         fontcolor="white",
+        #         fontsize=16,
+        #         x="(w-text_w)/2",
+        #         y="(h-text_h)/2 + 64",
+        #         enable="between(t,0.5,4)",
+        #     )
+        #     .filter("scale", w=width, h=height, force_original_aspect_ratio="increase")
+        #     .filter("format", pix_fmt)
+        # )
+
         image_streams = []
-        for path in image_paths:
-            stream = ffmpeg.input(path, loop=1, t=image_duration, framerate=framerate)
+        for i, path in enumerate(image_paths):
+            stream = ffmpeg.input(
+                path,
+                loop=1,
+                t=image_duration,
+                framerate=framerate,
+                ss=(i * image_duration),
+            )
+
             stream = stream.filter(
                 "scale", w=width, h=height, force_original_aspect_ratio="increase"
             )
-            stream = stream.filter("crop", w=width, h=height)
-            stream = stream.filter("setsar", sar=1)
+
             stream = stream.filter(
                 "fade", type="in", start_time=0, duration=fade_duration
             )
@@ -102,24 +141,22 @@ class Ffmpeg:
                 start_time=image_duration - fade_duration,
                 duration=fade_duration,
             )
+
             image_streams.append(stream)
 
-        # Concatenate intro + images + outro
-        concat_streams = [black_intro] + image_streams + [black_outro]
-        video_stream = ffmpeg.concat(*concat_streams, v=1, a=0).node
-        video = video_stream[0]
-        video = video.filter("format", pix_fmt)  # Apply format after concat
+        # concat_streams = [black_intro] + image_streams + [outro]
 
-        # Add audio
+        video = ffmpeg.concat(*image_streams, v=1, a=0).node
         audio = ffmpeg.input(audio_path)
 
         ffmpeg.output(
-            video,
+            video[0],
             audio,
             str(video_output_path),
             vcodec="h264_nvenc",
             acodec="aac",
             pix_fmt=pix_fmt,
+            r=framerate,
             shortest=None,
         ).run(overwrite_output=True)
 
@@ -128,10 +165,11 @@ class Ffmpeg:
     def _process_thread(self, row: pd.Series, idx: int, thread_id: str) -> None:
         status = row.get("status")
         image_populated = bool(row.get("image_populated"))
+        narrated = bool(row.get("narrated"))
 
-        if not image_populated or status == "rejected":
+        if not image_populated or status == "rejected" or not narrated:
             logger.warning(
-                f"Thread {thread_id}'s status: {status}, image_populated: {image_populated}, skipping."
+                f"Thread {thread_id}'s status: {status}, image_populated: {image_populated}, narrated: {narrated}, skipping."
             )
             return
 
@@ -139,9 +177,11 @@ class Ffmpeg:
         logger.info(f"pegging thread {thread_id}...")
 
         image_paths, audio_path = self._get_paths_for_thread(row)
+        title = row.get("youtube_title")
+        credit = row.get("author")
 
         video_output_path = self._merge_media(
-            idx, thread_id, output_dir, image_paths, audio_path
+            thread_id, output_dir, image_paths, audio_path, title, credit
         )
 
         self.df.at[idx, "status"] = "video_populated"  # this could cause errors...
@@ -167,6 +207,16 @@ class Ffmpeg:
                 self._process_thread(row, idx, thread_id)
 
         except ffmpeg.Error as e:
-            logger.error(f"ffmpeg error for thread {thread_id}: {e}")
+            logger.error(f"ffmpeg error for thread: {e}")
         except Exception as e:
-            logger.error(f"Error for thread {thread_id}: {e}")
+            logger.error(f"Error for thread: {e}")
+
+
+if __name__ == "__main__":
+    from creepypastas.config import Settings
+
+    settings = Settings()
+    csv_path = settings.THREADS_PATH / "reddit_threads_20250823_040539.csv"
+    thread_id = "1mxe8r5"
+    ffmpeg_service = Ffmpeg(csv_path=csv_path, settings=settings, thread_id=thread_id)
+    ffmpeg_service.run()

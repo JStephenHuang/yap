@@ -29,54 +29,107 @@ def run():
     logger = logging.getLogger(__name__)
     logger.info("Starting sandbox...")
 
-    thread_id = "1mt62jp"
-    csv_path = settings.THREADS_PATH / "reddit_threads_20250818_004221.csv"
+    thread_id = "1mxe8r5"
+    # csv_path = settings.THREADS_PATH / "reddit_threads_20250818_004221.csv"
+    csv_path = settings.THREADS_PATH / "reddit_threads_20250823_040539.csv"
 
     # reddit_scraper = RedditScrapper(settings)
-    # reddit_scraper.scrape_stories()
-
-    # triage = Triage(
-    #     csv_path=csv_path,
-    #     settings=settings,
-    # )
-
-    # asyncio.run(triage.triage())
-
+    triage = Triage(
+        csv_path=csv_path,
+        settings=settings,
+    )
     # sanitizer = Sanitizer(
     #     csv_path=csv_path,
     #     settings=settings,
     #     thread_id=thread_id,
     # )
-
-    # sanitizer.run()
-
     # tts = Narrator(
     #     csv_path=csv_path,
     #     settings=settings,
     #     rerun=True,
     # )
-    # asyncio.run(tts.run())
-
     # imagegen = ImageGen(
     #     csv_path=csv_path,
     #     settings=settings,
     #     thread_id=thread_id,
     # )
-
-    # asyncio.run(imagegen.run())
-
     # ffmpeg = Ffmpeg(
     #     csv_path=csv_path,
     #     settings=settings,
     #     thread_id=thread_id,
     # )
+    # ytapi = YouTubeAPI(
+    #     csv_path=csv_path,
+    #     settings=settings,
+    #     thread_id=thread_id,
+    # )
 
-    # ffmpeg.run()
+    while True:
+        cmd = input("Enter a command (or 'exit' to quit): ")
+        if cmd == "exit":
+            break
+        # Process user input here
 
-    ytapi = YouTubeAPI(
-        csv_path=csv_path,
-        settings=settings,
-        thread_id=thread_id,
-    )
+        if cmd == "scrape":
+            reddit_scraper = RedditScrapper(settings)
+            reddit_scraper.scrape_stories()
 
-    ytapi.run()
+        if cmd == "triage":
+
+            triage.triage()
+
+        if cmd == "get_approved":
+
+            print(triage.get_approved_thread())
+
+        if cmd == "sanitize":
+            sanitizer = Sanitizer(
+                csv_path=csv_path,
+                settings=settings,
+                thread_id=thread_id,
+            )
+
+            sanitizer.run()
+
+        if cmd == "tts":
+            tts = Narrator(
+                csv_path=csv_path,
+                settings=settings,
+                thread_id=thread_id,
+            )
+            tts.run()
+
+        if cmd == "imagegen":
+            imagegen = ImageGen(
+                csv_path=csv_path,
+                settings=settings,
+                thread_id=thread_id,
+                # update=True,
+            )
+
+            imagegen.run()
+
+        if cmd == "ffmpeg":
+            ffmpeg = Ffmpeg(
+                csv_path=csv_path,
+                settings=settings,
+                thread_id=thread_id,
+                update=True,
+            )
+
+            ffmpeg.run()
+
+        if cmd == "ytapi":
+            ytapi = YouTubeAPI(
+                csv_path=csv_path,
+                settings=settings,
+                thread_id=thread_id,
+            )
+
+            ytapi.run()
+
+        if cmd == "change_thread":
+            thread_id = str(input("Enter new thread ID: "))
+
+        if cmd == "change_csv":
+            csv_path = str(input("Enter new CSV path: "))

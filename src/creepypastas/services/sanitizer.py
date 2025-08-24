@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-from ollama import AsyncClient
+from ollama import Client
 from pydantic import BaseModel
 
 from creepypastas.config import Settings
@@ -48,7 +48,7 @@ class Sanitizer:
         self.csv_path = csv_path
         self.settings = settings
         self.thread_id = thread_id
-        self.ollama = AsyncClient()
+        self.ollama = Client()
         # Load CSV, ensure required columns exist
         self.df = pd.read_csv(self.csv_path)
 
@@ -195,10 +195,6 @@ class Sanitizer:
         # Save progress incrementally
         save(self.csv_path, self.df)
         logger.info(f"Thread {thread_id} prepared successfully.")
-
-    # ----------------------
-    # Main runner
-    # ----------------------
 
     def run(self) -> None:
 

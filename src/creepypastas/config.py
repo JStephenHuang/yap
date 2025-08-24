@@ -5,15 +5,14 @@ from typing import Dict, List, Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = PROJECT_ROOT / "data"
-
 
 class Settings(BaseSettings):
     """Application settings with defaults and validation."""
 
     # Where to save data
-    DATA_DIR: Path = DATA_DIR
+    PROJECT_ROOT: Path = Path(__file__).resolve().parents[2]
+    DATA_DIR: Path = PROJECT_ROOT / "data"
+    ASSETS_DIR: Path = PROJECT_ROOT / "assets"
     THREADS_PATH: Path = DATA_DIR / "threads"
 
     # Reddit Wrapper (PRAW)
@@ -26,8 +25,8 @@ class Settings(BaseSettings):
     REDDIT_POST_LIMIT: int = Field(default=10)
 
     # Triage settings
-    MIN_WORDS: int = 300
-    MAX_WORDS: int = 2000
+    MIN_WORDS: int = 500
+    MAX_WORDS: int = 1500
 
     TRIAGE_LLM_MODEL: str = "llama3.1:8b"
     TRIAGE_LLM_PROMPT: str = """
@@ -69,26 +68,22 @@ class Settings(BaseSettings):
     CONTENT_GENERATION_LLM_TEMPERATURE: float = 0.7
 
     # Sanitizer Prompt
-    SANITIZER_PROMPT: str = """You are editing a creepypasta story for narration. Your goal is to make it flow better when read aloud while preserving the original style and atmosphere.
+    SANITIZER_PROMPT: str = """You are an editor preparing a creepypasta for audio narration. Your task is to polish the provided story to ensure it flows perfectly when read aloud, while preserving its original horror.
     Story:
     ---
     {story}
     ---
 
-    Instructions:
-    - Keep the exact same tone, vocabulary, and writing style as the original
-    - Fix only awkward or broken phrasing so it flows naturally when read aloud
-    - Remove or replace vulgar words with creepy but appropriate alternatives
-    - Fix grammar and punctuation errors
-    - Remove any meta-commentary or references to Reddit/posting
-    - Do not add new plot points or change the story structure
-    - Preserve all the original scares and atmosphere
-    - Make sure dialogue feels natural when narrated
+    Editing Guidelines:
+    1.  **Preserve the Core:** Maintain the original tone, writing style, and plot. Do not add or remove story elements.
+    2.  **Enhance Flow:** Correct grammar, punctuation, and awkward phrasing to ensure a smooth, natural narration.
+    3.  **Clean Content:** Replace vulgarity with thematically creepy alternatives and remove all meta-commentary (e.g., author's notes, Reddit references).
+    4.  **Format for TTS:** The final text must be clean of any formatting artifacts that would disrupt a Text-to-Speech engine. Specifically, ensure there are no single punctuation marks (like periods, hyphens, or asterisks) left on their own lines.
 
-    Respond with a JSON object in the following format:
-    {{
-      "sanitized_text": "the improved story text",
-    }}
+    Respond ONLY with a JSON object in the following format, with no other text before or after it:
+    {
+    "sanitized_text": "The fully edited and cleaned story text goes here."
+    }
     """
 
     # YouTube Title Generation Prompt
@@ -103,7 +98,7 @@ class Settings(BaseSettings):
     - Maximum 100 characters
     - Hint at the main threat/fear without spoiling it
     - Use power words that create intrigue
-    - Make everything lower case and follow it everytime with ...
+    - Make everything lowercase and follow it everytime with ...
     - Make it YouTube-friendly (no offensive content)
 
     Examples of good titles:
@@ -137,20 +132,19 @@ class Settings(BaseSettings):
     "youtube_description": "short description with credit"
     }}"""
     # Image Prompts Generation
-    IMAGE_PROMPTS_GENERATION_PROMPT: str = """Create distinct image prompts for a creepypasta story. These will be used to generate atmospheric images during narration.
-
+    IMAGE_PROMPTS_GENERATION_PROMPT: str = """Read the following creepypasta story and produce three prompts to generate three scene images for the visual of the creepypasta. 
+   
     Story context:
     ---
     {story}
     ---
 
-    Create three different scene descriptions that capture key moments or atmospheres from the story. Each should be:
-    - Visually distinct from the others
-    - Atmospheric and creepy
-    - Suitable for AI image generation
-    - Focused on mood/setting rather than specific people
-    - Forget about any text overlay
-    - 1-2 sentences each
+    Each prompt for the image generation should:
+    - Photorealistic or surrealistic
+    - Each scene should capture a distinct key moment or atmosphere from the story. 
+    - They must be vividly described in 1-2 sentences, focusing on setting, lighting, and mood. 
+    - Emphasize ominous, sad, dark, and mysterious environments that feel unsettling and chilling. 
+    - Try to keep a red lighting and dark shadows atmosphere.
 
     Respond with a JSON object in the following format:
     {{
@@ -160,7 +154,8 @@ class Settings(BaseSettings):
     }}"""
 
     # Thumbnail Prompt Generation
-    THUMBNAIL_PROMPT_GENERATION_PROMPT: str = """Create a YouTube thumbnail image prompt for this creepypasta story.
+    THUMBNAIL_PROMPT_GENERATION_PROMPT: str = """
+    Create a YouTube thumbnail image prompt for this creepypasta story.
 
     Story sample:
     ---
@@ -171,33 +166,37 @@ class Settings(BaseSettings):
 
     The thumbnail should:
     - Be eye-catching and creepy but not too graphic
-    - It has to be dark, scary, eerie, and dark/red
+    - Use dark red/black tones for atmosphere
     - Have high contrast for visibility
-    - Capture the main theme/fear of the story
-    - Be suitable for YouTube's guidelines
-    - Have a cinematic, professional look
-    - Forget about the text overlay
-
-    Create ONE image prompt (1-2 sentences) that would generate an effective YouTube thumbnail. Focus on atmospheric horror elements, lighting, and composition that would make someone want to click.
-    Respond with a JSON object in the following format:
+    - Capture the main theme or fear of the story
+    - Be suitable for YouTube guidelines
+    - Look cinematic and professional
     {{
-    "thumbnail_prompt": "thumbnail description"
+    "thumbnail_prompt": "One cinematic, photorealistic or surrealism scene description in 1-2 sentences, inspired by the story, emphasizing eerie atmosphere, dramatic lighting, and ominous mood."
     }}"""
 
     TTS_OUTPUT_PATH: Path = DATA_DIR / "narrations"
-    TTS_SPEAKER_PATH: Path = PROJECT_ROOT / "assets" / "speakers" / "oxley.mp3"
+    TTS_SPEAKER_PATH: Path = ASSETS_DIR / "speakers" / "ghoul.mp3"
 
     # Image Generation Settings
-    IMAGEGEN_HEIGHT: int = 1664
-    IMAGEGEN_WIDTH: int = 928
-    IMAGEGEN_MODEL: str = "stabilityai/stable-diffusion-xl-base-1.0"
-    IMAGEGEN_TORCH_DTYPE: torch.dtype = torch.bfloat16
+    IMAGEGEN_WIDTH: int = 1280
+    IMAGEGEN_HEIGHT: int = 720
+    IMAGEGEN_MODEL: str = "RunDiffusion/Juggernaut-XI-v11"
+    IMAGEGEN_URL: str = (
+        "https://huggingface.co/RunDiffusion/Juggernaut-XI-v11/resolve/main/Juggernaut-XI-byRunDiffusion.safetensors"
+    )
+    IMAGEGEN_TORCH_DTYPE: torch.dtype = torch.float16
     IMAGEGEN_TORCH_DEVICE: str = "cuda"
     IMAGEGEN_OUTPUT_PATH: Path = DATA_DIR / "images"
-    IMAGEGEN_GUIDANCE_SCALE: int = 9
-    IMAGEGEN_INFERENCE_STEPS: int = 75
+    IMAGEGEN_GUIDANCE_SCALE: int = 2
+    IMAGEGEN_INFERENCE_STEPS: int = 10
+
+    HF_TOKEN: str = Field(..., env="HF_TOKEN")
 
     GOOGLE_AI_STUDIO_KEY: str = Field(..., env="GOOGLE_AI_STUDIO_KEY")
+    GOOGLE_IMAGEGEN_MODEL: str = "imagen-4.0-generate-001"
+
+    FFMPEG_FONT: Path = ASSETS_DIR / "fonts" / "FoulFiend.ttf"
 
     YOUTUBE_DEFAULT_TAGS: List[str] = [
         "creepypasta",

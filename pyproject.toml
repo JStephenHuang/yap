@@ -36,6 +36,9 @@ nltk = "^3.9.1"
 ffmpeg-python = "^0.2.0"
 google-api-python-client = "^2.179.0"
 google-auth-oauthlib = "^1.2.2"
+typer = "^0.16.1"
+pydub = "^0.25.1"
+realtimetts = {extras = ["all"], version = "^0.5.7"}
 
 [[tool.poetry.source]]
 name = "pytorch-gpu"
