@@ -1,4 +1,5 @@
 import logging
+from importlib import metadata
 from pathlib import Path
 
 import pandas as pd
@@ -6,7 +7,8 @@ from ollama import Client
 from pydantic import BaseModel
 
 from creepypastas.config import Settings
-from creepypastas.utils import save, find_thread
+from creepypastas.metadata import Metadata, State
+from creepypastas.utils import find_thread, save
 
 
 class OllamaSanitizedText(BaseModel):
@@ -41,11 +43,12 @@ class Sanitizer:
 
     def __init__(
         self,
-        csv_path: Path,
+        story_path: Path,
         settings: Settings,
         thread_id: str | None = None,
     ):
-        self.csv_path = csv_path
+
+        self.story_path = story_path
         self.settings = settings
         self.thread_id = thread_id
         self.ollama = Client()
@@ -196,22 +199,21 @@ class Sanitizer:
         save(self.csv_path, self.df)
         logger.info(f"Thread {thread_id} prepared successfully.")
 
-    def run(self) -> None:
+    def run(self, story_path: Path) -> None:
+        metadata = Metadata.load(story_path / "metadata.json")
 
-        logger.info("Starting content preparation process")
-        try:
-            if self.thread_id:
-                # Process only the specified thread_id
-                row, idx = find_thread(self.thread_id, self.df)
+        if metadata.state <= State.SANITIZED:
+            return
 
-                self._process_thread(row, idx, self.thread_id)
-                return
+        with (story_path / "story.txt").open("r") as f:
+            story = f.read()
 
-            # Process all eligible threads
-            for idx, row in self.df.iterrows():
-                thread_id = row.get("thread_id")
+            # TODO: sanitize story
 
-                self._process_thread(row, idx, thread_id)
+            sanitized_story = "TODO: sanitize story"
 
-        except Exception as e:
-            logger.error(f"Error during sanitization: {e}")
+        with (story_path / "sanitized.txt").open("w") as f:
+            f.write(sanitized_story)
+
+        metadata.state = State.SANITIZED
+        metadata.save(self.story_path / "metadata.json")
