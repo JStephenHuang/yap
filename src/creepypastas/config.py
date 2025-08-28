@@ -61,10 +61,8 @@ class Settings(BaseSettings):
     TRIAGE_LLM_TEMPERATURE: float = 0.0  # Make responses deterministic
 
     SANITIZER_LLM_MODEL: str = "llama3.1:8b"
-    SANITIZER_LLM_TEMPERATURE: float = 0.0
-
-    # New robust prompt template
     SANITIZER_LLM_TEMPERATURE: float = 0.3
+
     CONTENT_GENERATION_LLM_TEMPERATURE: float = 0.7
 
     # Sanitizer Prompt
@@ -108,7 +106,7 @@ class Settings(BaseSettings):
 
     Respond with a JSON object in the following format:
     {{
-    "youtube_title": "scary but engaging title"
+    "youtube_title": "generated title here"
     }}
     """
 

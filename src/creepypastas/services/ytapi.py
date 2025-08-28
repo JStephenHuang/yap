@@ -88,13 +88,11 @@ class YouTubeAPI:
                 "categoryId": "24",  # Entertainment
                 "tags": self.settings.YOUTUBE_DEFAULT_TAGS,
             },
-            "status": {"privacyStatus": "private", "selfDeclaredMadeForKids": False},
+            "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False},
             "notifySubscribers": False,
         }
 
         try:
-            logger.info(f"Uploading video for thread {thread_id}...")
-
             response = (
                 service.videos()
                 .insert(
@@ -126,11 +124,8 @@ class YouTubeAPI:
         self, service, row: pd.Series, idx: int, thread_id: str
     ) -> None:
         status = row.get("status")
-        youtube_ready = row.get("youtube_ready")
-        if status == "rejected" or not youtube_ready:
-            logger.info(
-                f"Thread {thread_id}'s status: {status}, youtube_ready: {youtube_ready}, skipping."
-            )
+        if status == "rejected":
+            logger.info(f"Thread {thread_id}'s status: {status}, skipping.")
             return
 
         output_dir = self.settings.DATA_DIR / thread_id
@@ -141,6 +136,14 @@ class YouTubeAPI:
 
         title = row.get("title", f"Creepypasta Story - {thread_id}")
         description = row.get("description", "A chilling creepypasta narration.")
+
+        if not title or not description:
+            logger.warning(
+                f"Missing title or description for thread {thread_id}, skipping."
+            )
+            return
+
+        logger.info(f"Uploading video for thread {thread_id}...")
 
         video_id = self._upload_video(service, title, description, str(video_path))
 

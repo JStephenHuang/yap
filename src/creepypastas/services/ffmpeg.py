@@ -70,7 +70,6 @@ class Ffmpeg:
         framerate = 25
         pix_fmt = "yuv420p"
         font_path = str(self.settings.FFMPEG_FONT)
-        black_image_path = str(self.settings.ASSETS_DIR / "black_img.png")
 
         probe = ffmpeg.probe(audio_path)
 
@@ -79,44 +78,34 @@ class Ffmpeg:
 
         print(f"Audio duration: {audio_duration}, Image duration: {image_duration}")
 
-        # outro = (
-        #     ffmpeg.input(
-        #         black_image_path,
-        #         t=fade_duration,
-        #         framerate=framerate + 1,
-        #     )
-        #     .filter("scale", w=width, h=height, force_original_aspect_ratio="increase")
-        #     .filter("format", pix_fmt)
-        # )
-        # black_intro = (
-        #     ffmpeg.input(
-        #         black_image_path,
-        #         t=intro_duration,
-        #         framerate=framerate,
-        #     )
-        #     .filter(
-        #         "drawtext",
-        #         fontfile=font_path,
-        #         text=title,
-        #         fontcolor="white",
-        #         fontsize=32,
-        #         x="(w-text_w)/2",
-        #         y="(h-text_h)/2",
-        #         enable="between(t,0.5,4)",
-        #     )
-        #     .filter(
-        #         "drawtext",
-        #         fontfile=font_path,
-        #         text=credit,
-        #         fontcolor="white",
-        #         fontsize=16,
-        #         x="(w-text_w)/2",
-        #         y="(h-text_h)/2 + 64",
-        #         enable="between(t,0.5,4)",
-        #     )
-        #     .filter("scale", w=width, h=height, force_original_aspect_ratio="increase")
-        #     .filter("format", pix_fmt)
-        # )
+        intro = (
+            ffmpeg.input(
+                f"color=c=black:s={width}x{height}:r={framerate}:d={intro_duration}",
+                f="lavfi",
+            )
+            .filter(
+                "drawtext",
+                fontfile=font_path,
+                text=title,
+                fontcolor="white",
+                fontsize=32,
+                x="(w-text_w)/2",
+                y="(h-text_h)/2",
+                enable="between(t,0.5,4)",
+            )
+            .filter(
+                "drawtext",
+                fontfile=font_path,
+                text=credit,
+                fontcolor="white",
+                fontsize=16,
+                x="(w-text_w)/2",
+                y="(h-text_h)/2 + 64",
+                enable="between(t,0.5,4)",
+            )
+            .filter("scale", w=width, h=height, force_original_aspect_ratio="increase")
+            .filter("format", pix_fmt)
+        )
 
         image_streams = []
         for i, path in enumerate(image_paths):
@@ -144,16 +133,15 @@ class Ffmpeg:
 
             image_streams.append(stream)
 
-        # concat_streams = [black_intro] + image_streams + [outro]
-
-        video = ffmpeg.concat(*image_streams, v=1, a=0).node
+        video = ffmpeg.concat(intro, *image_streams, v=1, a=0).node
         audio = ffmpeg.input(audio_path)
+        audio = audio.filter("adelay", delays=f"{intro_duration}s", all=True)
 
         ffmpeg.output(
             video[0],
             audio,
             str(video_output_path),
-            vcodec="h264_nvenc",
+            vcodec="hevc_nvenc",
             acodec="aac",
             pix_fmt=pix_fmt,
             r=framerate,

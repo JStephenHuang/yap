@@ -5,8 +5,6 @@ from creepypastas.services.scraper import RedditScrapper
 from creepypastas.services.triage import Triage
 from creepypastas.services.ffmpeg import Ffmpeg
 
-import asyncio
-
 from creepypastas.services.tts import Narrator
 from creepypastas.services.ytapi import YouTubeAPI
 
@@ -20,6 +18,7 @@ def configure_logging():
         level=logging.INFO,  # minimum level to show
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        force=True,
     )
 
 
@@ -68,7 +67,6 @@ def run():
         cmd = input("Enter a command (or 'exit' to quit): ")
         if cmd == "exit":
             break
-        # Process user input here
 
         if cmd == "scrape":
             reddit_scraper = RedditScrapper(settings)
