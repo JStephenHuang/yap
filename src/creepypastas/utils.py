@@ -1,6 +1,6 @@
+import csv
 from pathlib import Path
 from typing import Union
-import csv
 
 import pandas as pd
 

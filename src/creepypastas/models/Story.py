@@ -1,4 +1,4 @@
-from typing_extensions import TypedDict, List, Optional
+from typing_extensions import List, Optional, TypedDict
 
 
 class StoryState(TypedDict):
