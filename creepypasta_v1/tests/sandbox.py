@@ -1,10 +1,11 @@
+import asyncio
+
 from creepypastas.config import Settings
+from creepypastas.services.ffmpeg import Ffmpeg
 from creepypastas.services.imagegen import ImageGen
 from creepypastas.services.sanitizer import Sanitizer
 from creepypastas.services.scraper import RedditScrapper
 from creepypastas.services.triage import Triage
-from creepypastas.services.ffmpeg import Ffmpeg
-
 from creepypastas.services.tts import Narrator
 from creepypastas.services.ytapi import YouTubeAPI
 
@@ -90,11 +91,7 @@ def run():
             sanitizer.run()
 
         if cmd == "tts":
-            tts = Narrator(
-                csv_path=csv_path,
-                settings=settings,
-                thread_id=thread_id,
-            )
+            tts = Narrator(story_path="story1/sanitized_text.txt")
             tts.run()
 
         if cmd == "imagegen":

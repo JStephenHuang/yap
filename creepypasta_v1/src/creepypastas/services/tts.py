@@ -1,14 +1,12 @@
-from io import BytesIO
 import logging
+import re
+from io import BytesIO
 from pathlib import Path
 
-import re
 import pandas as pd
 from pydub import AudioSegment
-
-
-from TTS.api import TTS
 from RealtimeTTS import TextToAudioStream, _load_coqui_engine
+from TTS.api import TTS
 
 from creepypasta_v1.src.creepypastas.keys import Settings
 from creepypastas.utils import find_thread, save
@@ -51,7 +49,7 @@ class Narrator:
 
         return cleaned
 
-    def _narrate_story(self, sanitized_text: str, output_dir: Path) -> str:
+    def _narrate_story(self, sanitized_text: str, output_dir: Path) -> None:
         """Generate narration for one story and return audio path."""
         output_dir.parent.mkdir(parents=True, exist_ok=True)
 
