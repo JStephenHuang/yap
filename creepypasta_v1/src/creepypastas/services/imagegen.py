@@ -9,7 +9,7 @@ from google.genai import types
 from diffusers import DiffusionPipeline, StableDiffusionXLPipeline
 from huggingface_hub import hf_hub_download
 
-from creepypastas.config import Settings
+from creepypasta_v1.src.creepypastas.keys import Settings
 from creepypastas.utils import find_thread, save
 
 logger = logging.getLogger(__name__)

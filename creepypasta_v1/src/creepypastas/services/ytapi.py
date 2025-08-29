@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.http import MediaFileUpload
 
-from creepypastas.config import Settings
+from creepypasta_v1.src.creepypastas.keys import Settings
 from creepypastas.utils import find_thread, save
 
 logger = logging.getLogger(__name__)

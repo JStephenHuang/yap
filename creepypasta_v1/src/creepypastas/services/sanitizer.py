@@ -5,7 +5,7 @@ import pandas as pd
 from ollama import Client
 from pydantic import BaseModel
 
-from creepypastas.config import Settings
+from creepypasta_v1.src.creepypastas.keys import Settings
 from creepypastas.utils import save, find_thread
 
 

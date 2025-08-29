@@ -9,7 +9,7 @@ from datetime import datetime
 import praw
 from praw.models import Submission
 
-from creepypastas.config import Settings
+from creepypasta_v1.src.creepypastas.keys import Settings
 from creepypastas.utils import ensure_dir
 
 logger = logging.getLogger(__name__)

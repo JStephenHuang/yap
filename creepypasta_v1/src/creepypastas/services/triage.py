@@ -6,7 +6,7 @@ import pandas as pd
 from pydantic import BaseModel
 from creepypastas.utils import save
 
-from creepypastas.config import Settings
+from creepypasta_v1.src.creepypastas.keys import Settings
 
 
 class OllamaOpinion(BaseModel):
