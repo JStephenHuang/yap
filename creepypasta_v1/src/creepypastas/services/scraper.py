@@ -9,7 +9,7 @@ from datetime import datetime
 import praw
 from praw.models import Submission
 
-from creepypasta_v1.src.creepypastas.keys import Settings
+from creepypastas.keys import Keys
 from creepypastas.utils import ensure_dir
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class RedditScrapper:
     """Scraps Reddit for Creepypasta stories."""
 
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Keys):
         self.settings = settings
         self.reddit = praw.Reddit(
             client_id=settings.REDDIT_CLIENT_ID,

@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.http import MediaFileUpload
 
-from creepypasta_v1.src.creepypastas.keys import Settings
+from creepypastas.keys import Keys
 from creepypastas.utils import find_thread, save
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class YouTubeAPI:
     def __init__(
         self,
         csv_path: Path,
-        settings: Settings,
+        settings: Keys,
         thread_id: str | None = None,
     ):
         self.csv_path = csv_path

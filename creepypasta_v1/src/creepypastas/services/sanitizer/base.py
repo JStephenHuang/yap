@@ -1,8 +1,6 @@
 SANITIZER_LLM_MODEL: str = "llama3.1:8b"
 SANITIZER_LLM_TEMPERATURE: float = 0.3
 
-CONTENT_GENERATION_LLM_TEMPERATURE: float = 0.7
-
 # Sanitizer Prompt
 SANITIZER_PROMPT: str = """You are an editor preparing a creepypasta for audio narration. Your task is to polish the provided story to ensure it flows perfectly when read aloud, while preserving its original horror.
 Story:

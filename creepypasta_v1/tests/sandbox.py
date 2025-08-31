@@ -1,6 +1,4 @@
-import asyncio
-
-from creepypastas.config import Settings
+from creepypastas.keys import Keys
 from creepypastas.services.ffmpeg import Ffmpeg
 from creepypastas.services.imagegen import ImageGen
 from creepypastas.services.sanitizer import Sanitizer
@@ -9,7 +7,7 @@ from creepypastas.services.triage import Triage
 from creepypastas.services.tts import Narrator
 from creepypastas.services.ytapi import YouTubeAPI
 
-settings = Settings()
+settings = Keys()
 
 import logging
 
@@ -46,7 +44,7 @@ def run():
     # tts = Narrator(
     #     csv_path=csv_path,
     #     settings=settings,
-    #     rerun=True,
+    #     thread_id=thread_id,
     # )
     # imagegen = ImageGen(
     #     csv_path=csv_path,
@@ -91,7 +89,12 @@ def run():
             sanitizer.run()
 
         if cmd == "tts":
-            tts = Narrator(story_path="story1/sanitized_text.txt")
+            # tts = Narrator(story_path="story1/sanitized_text.txt")
+            tts = Narrator(
+                csv_path=csv_path,
+                settings=settings,
+                thread_id=thread_id,
+            )
             tts.run()
 
         if cmd == "imagegen":

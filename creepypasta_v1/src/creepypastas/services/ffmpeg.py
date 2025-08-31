@@ -4,7 +4,7 @@ import logging
 import ffmpeg
 import pandas as pd
 
-from creepypasta_v1.src.creepypastas.keys import Settings
+from creepypastas.keys import Keys
 from creepypastas.utils import find_thread, save
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ class Ffmpeg:
     def __init__(
         self,
         csv_path: Path,
-        settings: Settings,
+        settings: Keys,
         thread_id: str | None = None,
         update: bool = False,
     ):
@@ -201,9 +201,9 @@ class Ffmpeg:
 
 
 if __name__ == "__main__":
-    from creepypasta_v1.src.creepypastas.keys import Settings
+    from creepypasta_v1.src.creepypastas.keys import Keys
 
-    settings = Settings()
+    settings = Keys()
     csv_path = settings.THREADS_PATH / "reddit_threads_20250823_040539.csv"
     thread_id = "1mxe8r5"
     ffmpeg_service = Ffmpeg(csv_path=csv_path, settings=settings, thread_id=thread_id)

@@ -18,7 +18,7 @@ class State(enum.IntEnum):
 
 @dataclasses.dataclass
 class Metadata:
-    uri: str
+    url: str
     title: str
     author: str
     state: State
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         temp_path = pathlib.Path(tmpdir) / "metadata.json"
 
         sample = Metadata(
-            uri="https://example.com/story",
+            url="https://example.com/story",
             title="Example Story",
             author="Unknown",
             state=State.FETCHED,

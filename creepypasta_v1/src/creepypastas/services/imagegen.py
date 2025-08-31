@@ -9,7 +9,7 @@ from google.genai import types
 from diffusers import DiffusionPipeline, StableDiffusionXLPipeline
 from huggingface_hub import hf_hub_download
 
-from creepypasta_v1.src.creepypastas.keys import Settings
+from creepypastas.keys import Keys
 from creepypastas.utils import find_thread, save
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class ImageGen:
     def __init__(
         self,
         csv_path: Path,
-        settings: Settings,
+        settings: Keys,
         thread_id: str | None = None,
         update: bool = False,
     ):
@@ -149,51 +149,3 @@ class ImageGen:
 
         logger.info("Image generation process completed.")
         return
-
-
-class ImageGenSingleton:
-    """Singleton wrapper for ImageGen class"""
-
-    _instance = None
-
-    def __new__(
-        cls,
-        csv_path: Path = None,
-        settings: Settings = None,
-        thread_id: str | None = None,
-        update: bool = False,
-    ):
-        if cls._instance is None:
-            cls._instance = ImageGen(
-                csv_path=csv_path,
-                settings=settings,
-                thread_id=thread_id,
-                update=update,
-            )
-        return cls._instance
-
-    def reset(
-        self,
-        csv_path: Path = None,
-        settings: Settings = None,
-        thread_id: str | None = None,
-    ):
-        """Reset the ImageGen instance with new parameters"""
-        if self._instance is None:
-            raise RuntimeError(
-                "ImageGenSingleton not initialized. Call initialize() first."
-            )
-
-        # Update parameters if provided
-        if csv_path is not None:
-            self._instance.csv_path = csv_path
-            self._instance.df = pd.read_csv(csv_path)
-            logger.info(f"Reloaded {len(self._instance.df)} rows from {csv_path}")
-
-        if settings is not None:
-            self._instance.settings = settings
-            logger.info("Updated settings and Google client")
-
-        if thread_id is not None:
-            self._instance.thread_id = thread_id
-            logger.info(f"Updated thread_id to {thread_id}")

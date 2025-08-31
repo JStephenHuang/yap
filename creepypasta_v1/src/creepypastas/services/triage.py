@@ -6,7 +6,7 @@ import pandas as pd
 from pydantic import BaseModel
 from creepypastas.utils import save
 
-from creepypasta_v1.src.creepypastas.keys import Settings
+from creepypastas.keys import Keys
 
 
 class OllamaOpinion(BaseModel):
@@ -33,7 +33,7 @@ class Triage:
     def __init__(
         self,
         csv_path: Path,
-        settings: Settings,
+        settings: Keys,
     ):
         self.csv_path = csv_path
         self.ollama = Client()

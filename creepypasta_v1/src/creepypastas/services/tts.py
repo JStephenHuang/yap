@@ -1,15 +1,17 @@
 import logging
 import re
-from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
 from pydub import AudioSegment
-from RealtimeTTS import TextToAudioStream, _load_coqui_engine
-from TTS.api import TTS
 
-from creepypasta_v1.src.creepypastas.keys import Settings
+# from creepypastas.services.tts_v2.common import TTS
+
+from creepypastas.keys import Keys
 from creepypastas.utils import find_thread, save
+
+from creepypastas.services.tts_v2.main import run as run_tts_v2
+from creepypastas.services.tts_v2.BosonAi import HiggsAudioTTS
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +21,7 @@ class Narrator:
     Handles narration of sanitized creepypasta stories.
     """
 
-    def __init__(
-        self, csv_path: Path, settings: Settings, thread_id: str | None = None
-    ):
+    def __init__(self, csv_path: Path, settings: Keys, thread_id: str | None = None):
         self.settings = settings
         self.csv_path = csv_path
         self.thread_id = thread_id
@@ -30,9 +30,9 @@ class Narrator:
 
         logger.info(f"Loaded {len(self.df)} rows from {self.csv_path}")
 
-        self.tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2").to(
-            "cuda"
-        )
+        # self.tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2").to(
+        #     "cuda"
+        # )
 
     def _chunk_by_sentence(self, text: str) -> list[str]:
         """Split text into chunks by sentence and clean up artifacts."""
@@ -49,23 +49,23 @@ class Narrator:
 
         return cleaned
 
-    def _narrate_story(self, sanitized_text: str, output_dir: Path) -> None:
-        """Generate narration for one story and return audio path."""
-        output_dir.parent.mkdir(parents=True, exist_ok=True)
+    # def _narrate_story(self, sanitized_text: str, output_dir: Path) -> None:
+    #     """Generate narration for one story and return audio path."""
+    #     output_dir.parent.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Sanitized text: {sanitized_text}")
+    #     logger.info(f"Sanitized text: {sanitized_text}")
 
-        print(f"input: {self._chunk_by_sentence(sanitized_text)}")
+    #     print(f"input: {self._chunk_by_sentence(sanitized_text)}")
 
-        clean_text = " ".join(self._chunk_by_sentence(sanitized_text))
+    #     clean_text = " ".join(self._chunk_by_sentence(sanitized_text))
 
-        self.tts.tts_to_file(
-            text=clean_text,
-            file_path=str(output_dir),
-            speaker_wav=self.settings.TTS_SPEAKER_PATH,
-            language="en",
-            split_sentences=True,
-        )
+    #     self.tts.tts_to_file(
+    #         text=clean_text,
+    #         file_path=str(output_dir),
+    #         speaker_wav=self.settings.TTS_SPEAKER_PATH,
+    #         language="en",
+    #         split_sentences=True,
+    #     )
 
     def _process_thread(self, row: pd.Series, idx: int, thread_id: str) -> None:
         status = row.get("status")
@@ -81,8 +81,8 @@ class Narrator:
 
         output_dir = self.settings.DATA_DIR / thread_id / "narration.wav"
 
-        self._narrate_story(sanitized_text, output_dir)
-        # self._narrate_by_chunk(sanitized_text, output_dir)
+        # self._narrate_story(sanitized_text, output_dir)
+        run_tts_v2(HiggsAudioTTS(), sanitized_text, output_dir)
         logger.info(f"Audio saved to {output_dir}")
 
         self.df.at[idx, "audio_path"] = output_dir

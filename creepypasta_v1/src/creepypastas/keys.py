@@ -1,59 +1,145 @@
+import torch
+from pathlib import Path
+from typing import List
 from pydantic import Field
-from pydantic_settings import BaseSettings
+import pydantic_settings
 
 
-class Keys(BaseSettings):
-    "All envs"
+class Keys(pydantic_settings.BaseSettings):
+    """Application settings with defaults and validation."""
+
+    # Where to save data
+    PROJECT_ROOT: Path = Path(__file__).resolve().parents[2]
+    DATA_DIR: Path = PROJECT_ROOT / "data"
+    ASSETS_DIR: Path = PROJECT_ROOT / "assets"
+    THREADS_PATH: Path = DATA_DIR / "threads"
 
     # Reddit Wrapper (PRAW)
     REDDIT_CLIENT_ID: str = Field(..., env="REDDIT_CLIENT_ID")
     REDDIT_CLIENT_SECRET: str = Field(..., env="REDDIT_CLIENT_SECRET")
 
-    # YouTube Title Generation Prompt
-    YOUTUBE_TITLE_PROMPT: str = """Create an engaging YouTube title for this creepypasta story. The title should be clickable but not clickbait, and capture the essence of the horror.
+    # Triage settings
+    MIN_WORDS: int = 500
+    MAX_WORDS: int = 1500
 
-    Story excerpt:
-    ---
-    {story_sample}
-    ---
+    TRIAGE_LLM_MODEL: str = "llama3.1:8b"
+    TRIAGE_LLM_PROMPT: str = """
+    You are an expert horror editor specializing in creepypasta storytelling. 
+    Your task is to evaluate whether the following unedited raw Reddit post 
+    has strong potential to be adapted into an engaging, scary, and 
+    fear-inducing creepypasta video for YouTube.
 
-    Requirements:
-    - Maximum 100 characters
-    - Hint at the main threat/fear without spoiling it
-    - Use power words that create intrigue
-    - Make everything lowercase and follow it everytime with ...
-    - Make it YouTube-friendly (no offensive content)
+    ### Evaluation Criteria
+    - **Engagement**: The text should be capable of capturing and holding attention.
+    - **Horror Quality**: The text should contain elements of fear, dread, suspense, or unease.
+    - **Creepypasta Fit**: The story should align with typical creepypasta themes 
+    (e.g., urban legends, supernatural events, psychological horror).
+    - **Potential**: Even if unpolished, the text should demonstrate 
+    potential to be refined into an effective horror story.
 
-    Examples of good titles:
-    - "the thing in my basement..."
-    - "i found something terrifying in my attic..."
-    - "the midnight visitor..."
+    ### Instructions
+    - Be concise and objective in your evaluation.
+    - Do **not** rewrite or improve the story. Only judge its potential.
+    - Always return a valid JSON object in the exact schema below.
 
-    Respond with a JSON object in the following format:
+    ### Schema
     {{
-    "youtube_title": "generated title here"
+    "approved": true | false,
+    "reasoning": "A short explanation of why it was approved or rejected."
+    }}
+
+    ### Story to Evaluate
+    {story}
+    """
+    TRIAGE_LLM_TEMPERATURE: float = 0.0  # Make responses deterministic
+
+    SANITIZER_LLM_MODEL: str = "llama3.1:8b"
+    SANITIZER_LLM_TEMPERATURE: float = 0.3
+
+    # Sanitizer Prompt
+    SANITIZER_PROMPT: str = """
+    You are an expert horror editor preparing creepypasta stories for audio narration. 
+    Your task is to edit the following raw text so that it flows naturally when read aloud, 
+    while preserving its original horror atmosphere.
+
+    ### Editing Criteria
+    - **Preserve Content**: Keep the original plot, tone, and writing style. Do not add or remove story elements.
+    - **Improve Flow**: Correct grammar, punctuation, and awkward phrasing to ensure smooth narration.
+    - **Clean Content**: Remove all meta-commentary (e.g., author's notes, Reddit references). Replace vulgarity with creepy alternatives when appropriate.
+    - **Remove Stray Punctuation**: Eliminate unnecessary or standalone symbols (e.g., ".", "-", "*") on their own line.
+    - **TTS Ready**: The final text must be plain, clean, and free of formatting artifacts that could disrupt Text-to-Speech.
+
+    ### Instructions
+    - Do not shorten the story significantly; preserve its length as much as possible.  
+    - Do not include any commentary or explanation in your response.  
+    - Always respond with a valid JSON object in the exact schema below.  
+
+    ### Schema
+    {{
+    "sanitized_text": "The fully edited and cleaned story text."
+    }}
+
+    ### Story to Edit
+    {story}
+    """
+
+    # YouTube Title Generation Prompt
+    YOUTUBE_TITLE_PROMPT: str = """
+    Your task is to create an engaging YouTube title for the following creepypasta story.
+
+    ### Story Excerpt
+    {story}
+
+    ### Title Requirements
+    - **Length**: Maximum 100 characters.  
+    - **Tone**: Must be intriguing and scary, but not clickbait.  
+    - **Focus**: Hint at the main threat/fear without giving away the ending.  
+    - **Style**: Use power words that spark curiosity and fear.  
+    - **Formatting**: Entirely in lowercase and end with "..." (exactly three dots).  
+    - **Safety**: Title must be YouTube-friendly (no offensive content).  
+
+    ### Examples
+    - "the thing in my basement..."  
+    - "i found something terrifying in my attic..."  
+    - "the midnight visitor..."  
+
+    ### Instructions
+    - Generate only one title.  
+    - Do not include explanations or extra text.  
+    - Always respond with a valid JSON object in the exact schema below.  
+
+    ### Schema
+    {{
+    "youtube_title": "the generated title here"
     }}
     """
 
-    YOUTUBE_DESCRIPTION_PROMPT: str = """Create a short YouTube video description for this creepypasta story. 
-    The description must be:
-    - only one sentence
-    - simple, creepy, and intriguing
-    - all in lowercase
-    - followed by a clear credit line with the author and the original thread link
+    YOUTUBE_DESCRIPTION_PROMPT: str = """
+    You are an expert YouTube copywriter specializing in horror content. 
+    Your task is to create a short video description for the following creepypasta story.
 
-    Story sample:
+    ### Story Sample
     ---
-    {story_sample}
+    {story}
     ---
 
-    Author: {author}
-    Thread link: {thread_link}
+    ### Requirements
+    - **Length**: Exactly one sentence.  
+    - **Tone**: Simple, creepy, and intriguing.  
+    - **Formatting**: Entirely in lowercase.  
+    - **Credit Line**: After the sentence, append a clear credit line in the format:  
+    "credit: {author} | original thread: {thread_link}"  
 
-    Respond with a JSON object in the following format:
+    ### Instructions
+    - Generate only one description.  
+    - Do not include explanations or extra text.  
+    - Always respond with a valid JSON object in the exact schema below.  
+
+    ### Schema
     {{
-    "youtube_description": "short description with credit"
-    }}"""
+    "youtube_description": "the generated description followed by the credit line"
+    }}
+    """
     # Image Prompts Generation
     IMAGE_PROMPTS_GENERATION_PROMPT: str = """Read the following creepypasta story and produce three prompts to generate three scene images for the visual of the creepypasta. 
    
@@ -82,7 +168,7 @@ class Keys(BaseSettings):
 
     Story sample:
     ---
-    {story_sample}
+    {story}
     ---
 
     YouTube Title: {title}
@@ -119,7 +205,9 @@ class Keys(BaseSettings):
     GOOGLE_AI_STUDIO_KEY: str = Field(..., env="GOOGLE_AI_STUDIO_KEY")
     GOOGLE_IMAGEGEN_MODEL: str = "imagen-4.0-generate-001"
 
-    YOUTUBE_DEFAULT_TAGS: list[str] = [
+    FFMPEG_FONT: Path = ASSETS_DIR / "fonts" / "FoulFiend.ttf"
+
+    YOUTUBE_DEFAULT_TAGS: List[str] = [
         "creepypasta",
         "horror stories",
         "scary stories",
@@ -130,7 +218,14 @@ class Keys(BaseSettings):
         "nightmare fuel",
         "scary pasta",
     ]
-    YOUTUBE_SCOPES: list[str] = [
+    YOUTUBE_SCOPES: List[str] = [
         "https://www.googleapis.com/auth/youtube.upload",
     ]
     YOUTUBE_CLIENT_SECRET_FILE: str = Field(..., env="YOUTUBE_CLIENT_SECRET_FILE")
+    YOUTUBE_CHANNEL_ID: str = Field(..., env="YOUTUBE_CHANNEL_ID")
+
+    class Config:
+        """Pydantic config for environment variables."""
+
+        env_file = ".env"
+        env_file_encoding = "utf-8"
