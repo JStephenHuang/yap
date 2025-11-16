@@ -3,6 +3,8 @@ from typing import Optional
 
 from langgraph.graph import StateGraph, START, END
 
+from IPython.display import display
+
 class Thread(TypedDict):
     id: str
     title: str
@@ -107,9 +109,7 @@ def main():
     # Compile the graph
     graph = build.compile()
 
-    mermaid_diagram = graph.get_graph().draw_mermaid()
-    print("Mermaid diagram:")
-    print(mermaid_diagram)
+    display(graph.get_graph().draw_mermaid())
 
     # Test invocations
     print("=== Test 1: Valid thread ===")
