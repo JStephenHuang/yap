@@ -1,0 +1,2 @@
+class Ollama:
+    pass

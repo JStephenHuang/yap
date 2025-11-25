@@ -22,7 +22,6 @@ reddit = praw.Reddit(
     user_agent=reddit_agent,
 )
 
-
 def scrape_threads(subreddits: list[str], limit) -> praw.models.Submission:
     all_threads = []
 

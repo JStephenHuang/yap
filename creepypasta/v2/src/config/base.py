@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pathlib import Path
 
+_ROOT_PATH = Path(__file__).resolve().parents[2]
 class BaseConfig(BaseSettings):
     """Base configuration that all services inherit from"""
 
@@ -9,3 +11,14 @@ class BaseConfig(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    # API keys for LLM providers
+    GROQ_API_KEY: str | None = None
+    OPENAI_API_KEY: str | None = None
+    ANTHROPIC_API_KEY: str | None = None
+
+    # Global paths
+    DB_PATH: Path = _ROOT_PATH / "data/threads.sqlite"
+    RAW_DATA_PATH: Path = _ROOT_PATH / "data/raw"
+    
+    OUTPUTS_PATH: Path = _ROOT_PATH / "outputs"

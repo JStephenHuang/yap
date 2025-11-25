@@ -1,20 +1,26 @@
 from typing import Optional
 from typing_extensions import TypedDict
 
+from infrastructure.database import RedditThreadRow
+
+from services.triage import TriageResult
+
 class RedditThread(TypedDict):
-    id: str
+    thread_id: str
     title: str
-    author: str
     content: str
+    author: str
+    url: str
 
 class CreepypastaState(TypedDict):
-    reddit_thread: Optional[RedditThread]
+    reddit_thread: RedditThread
+    
+    triage: Optional[TriageResult]
     
     yt_title: Optional[str]
     yt_description: Optional[str]
     
     story_body: Optional[str]
-    narration_prompt: Optional[str]
     audio: Optional[str]
 
     images_prompt: Optional[str]
