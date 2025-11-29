@@ -18,7 +18,5 @@ class BaseConfig(BaseSettings):
     ANTHROPIC_API_KEY: str | None = None
 
     # Global paths
-    DB_PATH: Path = _ROOT_PATH / "data/threads.sqlite"
-    RAW_DATA_PATH: Path = _ROOT_PATH / "data/raw"
-    
-    OUTPUTS_PATH: Path = _ROOT_PATH / "outputs"
+    DB_PATH: Path = _ROOT_PATH / "db"
+    RUNS_PATH: Path = _ROOT_PATH / "runs"

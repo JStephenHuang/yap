@@ -1,15 +1,24 @@
 """
-Write metadata node - generates YouTube title and description.
+Write YouTube metadata node - generates title and description.
 """
 
 import logging
+from typing import TypedDict
 
 from langgraph.types import Command
+from langchain_core.prompts import ChatPromptTemplate
 
 from graph.state import CreepypastaState
-# from services.metadata import generate_metadata
+from config.yt_metadata import yt_metadata_config
+from infrastructure.llm import create_structured_llm
 
 logger = logging.getLogger(__name__)
+
+
+class YTMetadataResult(TypedDict):
+    """Structured output for YouTube metadata."""
+    yt_title: str
+    yt_description: str
 
 
 def write_yt_metadata(state: CreepypastaState) -> Command:
@@ -17,49 +26,71 @@ def write_yt_metadata(state: CreepypastaState) -> Command:
     Generate YouTube metadata for the video.
 
     Creates:
-    - Title (clickable, SEO-friendly, matches creepypasta style)
-    - Description (includes story hook, tags, links)
-    """
-    refined_script = state.get("refined_script")
-    thread = state.get("reddit_thread")
+    - Title (clickable, SEO-friendly, max 60 chars)
+    - Description (hook, context, credits, hashtags)
 
-    if not refined_script or not thread:
-        raise RuntimeError("Missing refined_script or reddit_thread in state")
+    Supports regeneration with feedback.
+    """
+    refined_script = state["refined_script"]
+    thread = state["reddit_thread"]
+    feedback = state["current_feedback"]
+    previous_title = state["yt_title"]
+    previous_description = state["yt_description"]
+
+    original_title = thread["title"]
+    story_preview = refined_script[:800]
 
     logger.info("Generating YouTube metadata...")
 
-    # TODO: Call metadata service
-    # result = generate_metadata(refined_script, thread["title"])
+    structured_llm = create_structured_llm(
+        yt_metadata_config.LLM_PROVIDER,
+        yt_metadata_config.LLM_MODEL,
+        YTMetadataResult,
+        temperature=yt_metadata_config.LLM_TEMPERATURE,
+    )
 
-    # Pseudo:
-    # 1. Generate title
-    #    - Clickbait but not misleading
-    #    - Include hooks: "True Story", "Don't Read Alone", etc.
-    #    - SEO keywords for creepypasta/horror
-    #    - Max ~60 chars for YouTube display
-    #
-    # 2. Generate description
-    #    - First 2 lines visible in search (make them count)
-    #    - Story hook/teaser
-    #    - Credit original source (reddit link)
-    #    - Hashtags: #creepypasta #horror #scary
-    #    - Timestamps placeholder (filled after TTS)
+    if feedback and previous_title:
+        logger.info("Regenerating with feedback...")
+        prompt = ChatPromptTemplate([
+            ("system", yt_metadata_config.SYSTEM_PROMPT),
+            ("human", yt_metadata_config.USER_REVIEW_PROMPT),
+        ])
+        chain = prompt | structured_llm
+        result: YTMetadataResult = chain.invoke({
+            "original_title": original_title,
+            "story_preview": story_preview,
+            "author": thread["author"],
+            "thread_url": thread["url"],
+            "previous_title": previous_title,
+            "previous_description": previous_description or "",
+            "feedback": feedback,
+        })
+    else:
+        prompt = ChatPromptTemplate([
+            ("system", yt_metadata_config.SYSTEM_PROMPT),
+            ("human", yt_metadata_config.USER_PROMPT),
+        ])
+        chain = prompt | structured_llm
+        result: YTMetadataResult = chain.invoke({
+            "original_title": original_title,
+            "story_preview": story_preview,
+            "author": thread["author"],
+            "thread_url": thread["url"],
+        })
 
-    # Structured output schema:
-    # class MetadataResult(TypedDict):
-    #     yt_title: str
-    #     yt_description: str
-
-    yt_title = "TODO: YouTube title"
-    yt_description = "TODO: YouTube description"
+    yt_title = result["yt_title"]
+    yt_description = result["yt_description"]
 
     logger.info(f"Generated title: {yt_title}")
+
+    next_node = "review_yt_metadata" if state["enable_reviews"] else "END"
 
     return Command(
         update={
             "yt_title": yt_title,
             "yt_description": yt_description,
+            "current_feedback": None,
             "status": "metadata_written",
         },
-        goto="await_approval"
+        goto=next_node,
     )

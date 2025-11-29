@@ -3,16 +3,11 @@ SQLite database connection management.
 """
 
 import sqlite3
-from pathlib import Path
 
 from config.base import BaseConfig
 
-# Compute path relative to this file: infrastructure/database/ -> src/data/
 
-_connection: sqlite3.Connection | None = None
-
-
-class DatabaseConnectionSingleton():
+class DatabaseConnectionSingleton:
     """
     Get SQLite connection (singleton).
 
@@ -27,16 +22,16 @@ class DatabaseConnectionSingleton():
 
         return cls._connection
 
-def init_connection() -> None:
-    """Initialize database schema."""
-    db_path = BaseConfig().DB_PATH
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+def init_connection() -> sqlite3.Connection:
+    """Initialize database connection."""
+    config = BaseConfig()
+    config.DB_PATH.mkdir(parents=True, exist_ok=True)
+    db_path = config.DB_PATH / "threads.sqlite"
 
     connection = sqlite3.connect(str(db_path))
     connection.row_factory = sqlite3.Row
 
-    print("Connected to database at", db_path)
-    
+    print(f"Connected to database at {db_path}")
+
     return connection
-
-

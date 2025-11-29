@@ -54,38 +54,18 @@ def create_structured_llm(
     schema: Type[T],
     **kwargs,
 ) -> Runnable:
-    """
-    Create LLM with structured output for specified schema.
-
-    Args:
-        provider: "ollama", "openai", or "groq"
-        model: Model name for that provider
-        schema: TypedDict or Pydantic model for structured output
-        **kwargs: Additional args (temperature, etc.)
-
-    Returns:
-        LangChain runnable that outputs structured data
-    """
     base_llm = create_llm(provider, model, **kwargs)
     return base_llm.with_structured_output(schema)
 
 
-def unload_llm(provider: Provider, model: str | None = None) -> None:
-    """
-    Unload LLM to free resources.
-
-    Args:
-        provider: Provider to unload from
-        model: Specific model to unload (None = all for provider)
-    """
-    if model:
+def unload_llm(provider: Provider, model: str) -> None:
+    _providers[provider].unload(model)
+    cache_key = f"{provider}:{model}"
+    _cache.pop(cache_key, None)
+  
+def unload_all_llms() -> None:
+    """Clear all cached LLM instances."""
+    for cache_key in list(_cache.keys()):
+        provider, model = cache_key.split(":", 1)
         _providers[provider].unload(model)
-        cache_key = f"{provider}:{model}"
         _cache.pop(cache_key, None)
-    else:
-        # Unload all for this provider
-        keys_to_remove = [k for k in _cache if k.startswith(provider)]
-        for key in keys_to_remove:
-            model_name = key.split(":")[1]
-            _providers[provider].unload(model_name)
-            del _cache[key]

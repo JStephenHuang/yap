@@ -1,87 +1,145 @@
 """
-Sandbox for testing triage without Reddit credentials.
-Run from v2/: uv run sandbox
+Sandbox for testing the creepypasta pipeline.
+Run from v2/: uv run python src/sandbox.py
 """
 
+import json
 import logging
+import uuid
 
-from infrastructure.database import RedditThreadRepository, RedditThreadInsert, init_db
-from graph.nodes.triage import triage_node
+from langgraph.types import Command
+
+from graph.builder import compile_graph
 from graph.state import CreepypastaState
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def seed_test_data():
-    """Insert fake posts for testing."""
-    init_db()
-    repo = RedditThreadRepository()
+TEST_THREAD = {
+    "thread_id": "test_001",
+    "title": "I found a door in my basement that wasn't there yesterday",
+    "content": """I've lived in this house for 15 years. I know every inch of it.
 
-    fake_posts = [
-        RedditThreadInsert(
-            id="test_001",
-            title="The Basement Door Won't Stay Closed",
-            author="creepy_writer",
-            content="Every night at 3am, I hear scratching from the basement. I've tried locks, nails, even a bookshelf against the door. Nothing works. Last night, I finally decided to go down there. What I found changed everything I thought I knew about my house...",
-            subreddit="nosleep",
-            score=1500,
-            upvote_ratio=0.95,
-            num_comments=234,
-            url="https://reddit.com/r/nosleep/test_001",
-            created_utc=1700000000.0,
-        ),
-        RedditThreadInsert(
-            id="test_002",
-            title="My Daughter's Imaginary Friend Isn't Imaginary",
-            author="scared_parent",
-            content="She calls him Mr. Whispers and says he lives in the walls. I thought it was cute until I heard a second voice responding to her last night. The voice was coming from inside her closet...",
-            subreddit="creepypasta",
-            score=2300,
-            upvote_ratio=0.92,
-            num_comments=456,
-            url="https://reddit.com/r/creepypasta/test_002",
-            created_utc=1700100000.0,
-        ),
-        RedditThreadInsert(
-            id="test_003",
-            title="The Last Elevator Ride",
-            author="night_shift",
-            content="Working security at an old hospital, I took the service elevator to floor 13. We don't have a floor 13. Someone was standing inside, waiting...",
-            subreddit="shortscarystories",
-            score=890,
-            upvote_ratio=0.88,
-            num_comments=123,
-            url="https://reddit.com/r/shortscarystories/test_003",
-            created_utc=1700200000.0,
-        ),
-    ]
+But last night, I went down to grab a beer from the basement fridge, and there it was. A door.
+Wooden, old-looking, with a brass handle that was ice cold to the touch.
 
-    inserted = 0
-    for post in fake_posts:
-        if not repo.exists(post["id"]):
-            repo.create(post)
-            inserted += 1
-            logger.info(f"Inserted: {post['title'][:40]}...")
+I stood there for what felt like hours, just staring at it. The door wasn't there yesterday.
+I would have noticed. I go down there every single day.
 
-    logger.info(f"Seeded {inserted} new posts")
-    logger.info(f"Database status: {repo.count_by_status()}")
+The worst part? I can hear something breathing on the other side.
+
+It's been 6 hours now. The breathing hasn't stopped. And I swear... I swear the door is closer
+to the stairs than it was before.
+
+I don't know what to do. Should I open it? Should I call someone? Who do you even call for
+something like this?
+
+Update: It's been 12 hours. The door is definitely closer. And now I can hear whispers.
+
+Update 2: I think whatever is behind that door... knows I'm listening.""",
+    "author": "u/BasementDweller99",
+    "url": "https://reddit.com/r/nosleep/comments/test001",
+}
 
 
-def triage():
-    """Run the triage node."""
-    logger.info("Running triage node...")
-    initial_state: CreepypastaState = {}
-    final_state = triage_node(initial_state)
-    logger.info(f"Final state: {final_state}")
+def display_interrupt(interrupt_value: dict) -> None:
+    """Display interrupt data for user review."""
+    print("\n" + "=" * 60)
+    print(f"REVIEW REQUESTED: {interrupt_value.get('type', 'unknown')}")
+    print("=" * 60)
+
+    output = interrupt_value.get("output")
+    if isinstance(output, str):
+        print(f"\n{output}\n")
+    elif isinstance(output, list):
+        for i, item in enumerate(output, 1):
+            print(f"\n{i}. {item}")
+        print()
+    elif isinstance(output, dict):
+        print(json.dumps(output, indent=2))
+    else:
+        print(output)
+
+    print("=" * 60)
+    print("Type 'approve' to continue, or provide feedback to regenerate:")
+    print("=" * 60)
+
+
+def run_pipeline(enable_reviews: bool = False):
+    """Run the full pipeline with interactive review loop."""
+    logger.info("Compiling graph...")
+    app = compile_graph()
+
+    thread_id = str(uuid.uuid4())
+
+    initial_state: CreepypastaState = {
+        "enable_reviews": enable_reviews,
+        "reddit_thread": TEST_THREAD,
+        "triage": None,
+        "refined_script": None,
+        "scene_prompts": None,
+        "thumbnail_prompt": None,
+        "yt_title": None,
+        "yt_description": None,
+        "audio": None,
+        "scene_images": None,
+        "thumbnail": None,
+        "current_feedback": None,
+        "status": "started",
+        "message": None,
+    }
+
+    config = {"configurable": {"thread_id": thread_id}}
+
+    logger.info(f"Starting pipeline with thread_id: {thread_id}")
+    logger.info(f"Reviews enabled: {enable_reviews}")
+
+    # Initial invocation
+    app.invoke(initial_state, config=config)
+
+    # Review loop - keep checking for interrupts and handling them
+    while True:
+        state = app.get_state(config)
+
+        # Check if there's an interrupt pending
+        if state.tasks and any(task.interrupts for task in state.tasks):
+            # Get the interrupt value
+            for task in state.tasks:
+                if task.interrupts:
+                    interrupt_value = task.interrupts[0].value
+                    display_interrupt(interrupt_value)
+
+                    # Get user input
+                    user_input = input("\n> ").strip()
+
+                    # Resume with user's response
+                    app.invoke(Command(resume=user_input), config=config)
+                    break
+        else:
+            # No more interrupts, we're done
+            break
+
+    # Get final state
+    final_state = app.get_state(config).values
+
+    print("\n" + "=" * 60)
+    print("PIPELINE COMPLETED")
+    print("=" * 60)
+    print(f"Status: {final_state.get('status')}")
+    print(f"\nYT Title: {final_state.get('yt_title')}")
+    print(f"\nYT Description:\n{final_state.get('yt_description')}")
+    print("\nScene Prompts:")
+    for i, prompt in enumerate(final_state.get('scene_prompts') or [], 1):
+        print(f"  {i}. {prompt}")
+    print(f"\nThumbnail Prompt: {final_state.get('thumbnail_prompt')}")
+
     return final_state
 
 
 def main():
-    """Seed data and run triage."""
-    seed_test_data()
-    print("\n" + "="*50 + "\n")
-    triage()
+    """Run the full pipeline test."""
+    run_pipeline(enable_reviews=True)
 
 
 if __name__ == "__main__":
