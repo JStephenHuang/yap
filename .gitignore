@@ -1,7 +1,29 @@
-.vscode
+# IDE
+.vscode/
+.idea/
 
-__pycache__
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
 
+# Environment
 .env
+.env.local
 
+# macOS
 .DS_Store
+
+# Databases
+*.sqlite
+*.db
+
+# Pipeline outputs
+runs/
+output/
+
+# Generated audio (keep reference audio in assets/)
+*.wav
+!**/assets/**/*.wav

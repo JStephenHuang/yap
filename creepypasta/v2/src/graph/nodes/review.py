@@ -67,10 +67,10 @@ def create_review_node(
 
 # Pre-built review nodes
 review_story = create_review_node(
-    output_fields="refined_script",
+    output_fields="script",
     regenerate_node="refine_story",
     next_node="write_scene_prompts",
-    review_name="refined_script",
+    review_name="script",
 )
 
 review_scene_prompts = create_review_node(
@@ -90,6 +90,6 @@ review_thumbnail_prompt = create_review_node(
 review_yt_metadata = create_review_node(
     output_fields=["yt_title", "yt_description"],
     regenerate_node="write_yt_metadata",
-    next_node="END",
+    next_node="narrate_story",
     review_name="yt_metadata",
 )

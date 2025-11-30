@@ -6,11 +6,11 @@ import logging
 from typing import TypedDict
 
 from langgraph.types import Command
-from langchain_core.prompts import ChatPromptTemplate
 
 from graph.state import CreepypastaState
 from config.refine_story import refine_story_config
-from infrastructure.llm import create_structured_llm
+from llm import create_llm
+from infrastructure.json import save_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -29,48 +29,45 @@ def refine_story(state: CreepypastaState) -> Command:
     """
     thread = state["reddit_thread"]
     feedback = state["current_feedback"]
-    previous_output = state["refined_script"]
+    previous_output = state["script"]
 
     logger.info(f"Refining story: {thread['title'][:50]}...")
 
-    structured_llm = create_structured_llm(
+    llm = create_llm(
         refine_story_config.LLM_PROVIDER,
         refine_story_config.LLM_MODEL,
-        RefineResult,
         temperature=refine_story_config.LLM_TEMPERATURE,
     )
 
     if feedback and previous_output:
         logger.info("Regenerating with feedback...")
-        prompt = ChatPromptTemplate([
-            ("system", refine_story_config.SYSTEM_PROMPT),
-            ("human", refine_story_config.USER_REVIEW_PROMPT),
-        ])
-        chain = prompt | structured_llm
-        result: RefineResult = chain.invoke({
-            "content": thread["content"],
-            "previous_output": previous_output,
-            "feedback": feedback,
-        })
+        user_prompt = refine_story_config.USER_REVIEW_PROMPT.format(
+            content=thread["content"],
+            previous_output=previous_output,
+            feedback=feedback,
+        )
     else:
-        prompt = ChatPromptTemplate([
-            ("system", refine_story_config.SYSTEM_PROMPT),
-            ("human", refine_story_config.USER_PROMPT),
-        ])
-        chain = prompt | structured_llm
-        result: RefineResult = chain.invoke({"content": thread["content"]})
+        user_prompt = refine_story_config.USER_PROMPT.format(
+            content=thread["content"],
+        )
 
-    refined_script = result["story"]
+    result: RefineResult = llm.generate_structured(
+        prompt=user_prompt,
+        schema=RefineResult,
+        system_prompt=refine_story_config.SYSTEM_PROMPT,
+    )
 
-    logger.info(f"Refined story: {len(refined_script)} chars")
+    script = result["story"]
+
+    logger.info(f"Refined story: {len(script)} chars")
 
     next_node = "review_story" if state["enable_reviews"] else "write_scene_prompts"
 
-    return Command(
-        update={
-            "refined_script": refined_script,
-            "current_feedback": None,
-            "status": "refined",
-        },
-        goto=next_node,
-    )
+    update = {
+        "script": script,
+        "current_feedback": None,
+        "status": "refined",
+    }
+    save_metadata(state["run_dir"], {**state, **update})
+
+    return Command(update=update, goto=next_node)

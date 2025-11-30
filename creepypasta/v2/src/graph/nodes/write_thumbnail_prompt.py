@@ -6,11 +6,11 @@ import logging
 from typing import TypedDict
 
 from langgraph.types import Command
-from langchain_core.prompts import ChatPromptTemplate
 
 from graph.state import CreepypastaState
 from config.thumbnail_prompt import thumbnail_prompt_config
-from infrastructure.llm import create_structured_llm
+from llm import create_llm
+from infrastructure.json import save_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -31,48 +31,45 @@ def write_thumbnail_prompt(state: CreepypastaState) -> Command:
 
     Supports regeneration with feedback.
     """
-    refined_script = state["refined_script"]
+    script = state["script"]
     reddit_thread = state["reddit_thread"]
     feedback = state["current_feedback"]
     previous_output = state["thumbnail_prompt"]
 
     title = reddit_thread["title"]
-    story_preview = refined_script[:500]
+    story_preview = script[:500]
 
     logger.info("Generating thumbnail prompt...")
 
-    structured_llm = create_structured_llm(
+    llm = create_llm(
         thumbnail_prompt_config.LLM_PROVIDER,
         thumbnail_prompt_config.LLM_MODEL,
-        ThumbnailPromptResult,
         temperature=thumbnail_prompt_config.LLM_TEMPERATURE,
+    )
+
+    system_prompt = thumbnail_prompt_config.SYSTEM_PROMPT.format(
+        visual_style=thumbnail_prompt_config.VISUAL_STYLE,
     )
 
     if feedback and previous_output:
         logger.info("Regenerating with feedback...")
-        prompt = ChatPromptTemplate([
-            ("system", thumbnail_prompt_config.SYSTEM_PROMPT),
-            ("human", thumbnail_prompt_config.USER_REVIEW_PROMPT),
-        ])
-        chain = prompt | structured_llm
-        result: ThumbnailPromptResult = chain.invoke({
-            "title": title,
-            "story_preview": story_preview,
-            "visual_style": thumbnail_prompt_config.VISUAL_STYLE,
-            "previous_output": previous_output,
-            "feedback": feedback,
-        })
+        user_prompt = thumbnail_prompt_config.USER_REVIEW_PROMPT.format(
+            title=title,
+            story_preview=story_preview,
+            previous_output=previous_output,
+            feedback=feedback,
+        )
     else:
-        prompt = ChatPromptTemplate([
-            ("system", thumbnail_prompt_config.SYSTEM_PROMPT),
-            ("human", thumbnail_prompt_config.USER_PROMPT),
-        ])
-        chain = prompt | structured_llm
-        result: ThumbnailPromptResult = chain.invoke({
-            "title": title,
-            "story_preview": story_preview,
-            "visual_style": thumbnail_prompt_config.VISUAL_STYLE,
-        })
+        user_prompt = thumbnail_prompt_config.USER_PROMPT.format(
+            title=title,
+            story_preview=story_preview,
+        )
+
+    result: ThumbnailPromptResult = llm.generate_structured(
+        prompt=user_prompt,
+        schema=ThumbnailPromptResult,
+        system_prompt=system_prompt,
+    )
 
     thumbnail_prompt = result["thumbnail_prompt"]
 
@@ -80,11 +77,11 @@ def write_thumbnail_prompt(state: CreepypastaState) -> Command:
 
     next_node = "review_thumbnail_prompt" if state["enable_reviews"] else "write_yt_metadata"
 
-    return Command(
-        update={
-            "thumbnail_prompt": thumbnail_prompt,
-            "current_feedback": None,
-            "status": "thumbnail_prompt_written",
-        },
-        goto=next_node,
-    )
+    update = {
+        "thumbnail_prompt": thumbnail_prompt,
+        "current_feedback": None,
+        "status": "thumbnail_prompt_written",
+    }
+    save_metadata(state["run_dir"], {**state, **update})
+
+    return Command(update=update, goto=next_node)

@@ -17,9 +17,12 @@ class CreepypastaState(TypedDict):
     # Input
     reddit_thread: RedditThread
 
+    # Run directory (runs/{thread_id}/)
+    run_dir: str
+
     # Pipeline outputs
     triage: Optional[TriageResult]
-    refined_script: Optional[str]
+    script: Optional[str]
     scene_prompts: Optional[list[str]]
     thumbnail_prompt: Optional[str]
     yt_title: Optional[str]

@@ -5,12 +5,15 @@ Run from v2/: uv run python src/sandbox.py
 
 import json
 import logging
-import uuid
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from langgraph.types import Command
 
 from graph.builder import compile_graph
 from graph.state import CreepypastaState
+from config.base import BaseConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -71,13 +74,21 @@ def run_pipeline(enable_reviews: bool = False):
     logger.info("Compiling graph...")
     app = compile_graph()
 
-    thread_id = str(uuid.uuid4())
+    # Use the thread_id from TEST_THREAD for run directory
+    thread_id = TEST_THREAD["thread_id"]
+
+    # Create run directory
+    config = BaseConfig()
+    run_dir = config.RUNS_PATH / thread_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Run directory: {run_dir}")
 
     initial_state: CreepypastaState = {
         "enable_reviews": enable_reviews,
         "reddit_thread": TEST_THREAD,
+        "run_dir": str(run_dir),
         "triage": None,
-        "refined_script": None,
+        "script": None,
         "scene_prompts": None,
         "thumbnail_prompt": None,
         "yt_title": None,
@@ -133,13 +144,46 @@ def run_pipeline(enable_reviews: bool = False):
     for i, prompt in enumerate(final_state.get('scene_prompts') or [], 1):
         print(f"  {i}. {prompt}")
     print(f"\nThumbnail Prompt: {final_state.get('thumbnail_prompt')}")
+    print(f"\nAudio: {final_state.get('audio')}")
 
     return final_state
 
 
+def test_tts():
+    """Test NeuTTS voice cloning."""
+    from pathlib import Path
+    from tts import create_tts
+
+    # Reference audio and transcript
+    REF_AUDIO = Path("assets/narrators/ghoul.mp3")
+    REF_TEXT = "You. You tell the others. Tell them that this is the voice of a serial killer. One so evil that the devil himself... is afraid."  # TODO: add real transcript
+
+    if not REF_AUDIO.exists():
+        print(f"Reference audio not found: {REF_AUDIO}")
+        return
+
+    logger.info("Loading NeuTTS model (this may take a minute)...")
+    tts = create_tts("neutts", "neuphonic/neutts-air", backbone_device="cpu")
+
+    logger.info("Registering voice...")
+    tts.register_voice("narrator", REF_AUDIO, REF_TEXT)
+
+    logger.info("Synthesizing test audio...")
+    test_text = "A mysterious door appears in my basement overnight. I hear something breathing on the other side. Original story from Reddit: u/BasementDweller99. I've lived in this house for 15 years, but nothing could have prepared me for this."
+
+    audio_bytes = tts.synthesize(
+        text=test_text,
+        voice_id="narrator",
+        output_path=Path("output/test_tts.wav"),
+    )
+
+    logger.info(f"Done! Saved to output/test_tts.wav ({len(audio_bytes)} bytes)")
+
+
 def main():
     """Run the full pipeline test."""
-    run_pipeline(enable_reviews=True)
+    run_pipeline(enable_reviews=False)
+    # test_tts()
 
 
 if __name__ == "__main__":
