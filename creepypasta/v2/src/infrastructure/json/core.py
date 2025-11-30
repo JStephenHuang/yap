@@ -37,3 +37,36 @@ def load_jsonl(filepath: str | Path) -> Iterator[dict]:
         for line in f:
             if line.strip():
                 yield json.loads(line)
+
+
+def save_metadata(run_dir: str | Path, state: dict) -> None:
+    """
+    Save current pipeline state to metadata.json in the run directory.
+
+    Filters out control fields and saves only the meaningful output data.
+    """
+    serializable_fields = [
+        "reddit_thread",
+        "triage",
+        "script",
+        "scene_prompts",
+        "thumbnail_prompt",
+        "yt_title",
+        "yt_description",
+        "audio",
+        "scene_images",
+        "thumbnail",
+        "status",
+    ]
+
+    metadata = {}
+    for field in serializable_fields:
+        if field in state and state[field] is not None:
+            value = state[field]
+            # Handle Pydantic models
+            if hasattr(value, "model_dump"):
+                metadata[field] = value.model_dump()
+            else:
+                metadata[field] = value
+
+    save_json(metadata, Path(run_dir) / "metadata.json")

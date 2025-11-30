@@ -10,6 +10,7 @@ from graph.nodes.refine_story import refine_story
 from graph.nodes.write_scene_prompts import write_scene_prompts
 from graph.nodes.write_thumbnail_prompt import write_thumbnail_prompt
 from graph.nodes.write_yt_metadata import write_yt_metadata
+from graph.nodes.narrate_story import narrate_story
 from graph.nodes.review import (
     review_story,
     review_scene_prompts,
@@ -26,11 +27,11 @@ def build_graph() -> StateGraph:
     Flow (with reviews enabled):
         triage → refine_story → review_story → write_scene_prompts →
         review_scene_prompts → write_thumbnail_prompt → review_thumbnail_prompt →
-        write_yt_metadata → review_yt_metadata → END
+        write_yt_metadata → review_yt_metadata → narrate_story → END
 
     Flow (with reviews disabled):
         triage → refine_story → write_scene_prompts →
-        write_thumbnail_prompt → write_yt_metadata → END
+        write_thumbnail_prompt → write_yt_metadata → narrate_story → END
 
     Returns:
         Uncompiled StateGraph (call .compile() with checkpointer to use).
@@ -43,6 +44,7 @@ def build_graph() -> StateGraph:
     graph.add_node("write_scene_prompts", write_scene_prompts)
     graph.add_node("write_thumbnail_prompt", write_thumbnail_prompt)
     graph.add_node("write_yt_metadata", write_yt_metadata)
+    graph.add_node("narrate_story", narrate_story)
 
     # Review nodes
     graph.add_node("review_story", review_story)
