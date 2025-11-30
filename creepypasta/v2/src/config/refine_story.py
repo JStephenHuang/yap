@@ -1,7 +1,4 @@
-from .base import BaseConfig
-
-
-class RefineStoryConfig(BaseConfig):
+class RefineStoryConfig:
     """Refine story node configuration"""
 
     LLM_PROVIDER: str = "groq"

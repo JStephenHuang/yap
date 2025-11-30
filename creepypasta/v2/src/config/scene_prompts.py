@@ -1,7 +1,4 @@
-from .base import BaseConfig
-
-
-class ScenePromptsConfig(BaseConfig):
+class ScenePromptsConfig:
     """Scene prompts generation configuration"""
 
     LLM_PROVIDER: str = "groq"

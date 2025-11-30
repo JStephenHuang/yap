@@ -13,7 +13,6 @@ class BaseConfig(BaseSettings):
     )
 
     # API keys for LLM providers
-    GROQ_API_KEY: str | None = None
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
 

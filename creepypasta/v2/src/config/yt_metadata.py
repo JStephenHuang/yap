@@ -1,7 +1,4 @@
-from .base import BaseConfig
-
-
-class YTMetadataConfig(BaseConfig):
+class YTMetadataConfig:
     """YouTube metadata generation configuration"""
 
     LLM_PROVIDER: str = "groq"

@@ -1,7 +1,4 @@
-from .base import BaseConfig
-
-
-class ThumbnailPromptConfig(BaseConfig):
+class ThumbnailPromptConfig:
     """YouTube thumbnail prompt configuration"""
 
     LLM_PROVIDER: str = "groq"
