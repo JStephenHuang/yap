@@ -1,20 +1,15 @@
 """
 Reddit scraper for creepypasta content.
-Saves to both JSONL (raw backup) and SQLite (pipeline state).
 """
 
 import logging
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 import praw
 from praw.models import Submission
 
 from config.reddit import reddit_config
-from config.base import BaseConfig
-
-from infrastructure.json import append_jsonl
 from infrastructure.database import RedditThreadRepositorySingleton, RedditThreadInsert
 
 logger = logging.getLogger(__name__)
@@ -79,23 +74,16 @@ def scrape_subreddit(
 def run(
     limit_per_sub: int = 50,
     time_filter: str = "week",
-) -> Path:
+) -> int:
     """
-    Scrape all configured subreddits.
-    Saves to JSONL (raw backup) and SQLite (deduped pipeline state).
-    Returns path to output file.
+    Scrape all configured subreddits into SQLite.
+
+    Returns:
+        Number of new threads added.
     """
-    # Initialize database
     repo = RedditThreadRepositorySingleton()
-
-    # Setup output file
-    output_path = BaseConfig().RAW_DATA_PATH / "reddit_threads"
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = output_path / f"creepypasta_{timestamp}.jsonl"
-
     reddit = get_reddit_client()
+
     total_scraped = 0
     total_new = 0
 
@@ -103,11 +91,8 @@ def run(
         logger.info(f"Scraping r/{subreddit}")
         try:
             for post in scrape_subreddit(reddit, subreddit, limit_per_sub, time_filter):
-                # Always append to JSONL (raw backup)
-                append_jsonl(post, output_file)
                 total_scraped += 1
 
-                # Only insert to DB if not already exists
                 if not repo.exists(post["id"]):
                     thread = RedditThreadInsert(
                         id=post["id"],
@@ -128,5 +113,5 @@ def run(
             logger.error(f"Failed scraping r/{subreddit}: {e}")
             continue
 
-    logger.info(f"Scraped {total_scraped} posts, {total_new} new -> {output_file}")
-    return output_file
+    logger.info(f"Scraped {total_scraped} posts, {total_new} new")
+    return total_new

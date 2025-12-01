@@ -20,7 +20,7 @@ class TTSConfig:
     # Provider settings
     PROVIDER: str = "neutts"
     MODEL: str = "neuphonic/neutts-air"
-    DEVICE: str = "cpu"  # "cpu" or "cuda"
+    DEVICE: str = "cuda"
 
     # Output settings
     SAMPLE_RATE: int = 24000

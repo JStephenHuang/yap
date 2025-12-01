@@ -2,7 +2,7 @@ class YTMetadataConfig:
     """YouTube metadata generation configuration"""
 
     LLM_PROVIDER: str = "langchain-groq"
-    LLM_MODEL: str = "openai/gpt-oss-120b"
+    LLM_MODEL: str = "llama-3.3-70b-versatile"
     LLM_TEMPERATURE: float = 0.8  # Higher for creative titles
 
     SYSTEM_PROMPT: str = """You are a YouTube SEO expert for horror/creepypasta content.

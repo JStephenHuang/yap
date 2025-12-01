@@ -4,7 +4,6 @@ JSON storage utilities.
 
 import json
 from pathlib import Path
-from typing import Iterator
 
 
 def save_json(data: dict, filepath: str | Path) -> None:
@@ -22,23 +21,6 @@ def load_json(filepath: str | Path) -> dict:
         return json.load(f)
 
 
-def append_jsonl(data: dict, filepath: str | Path) -> None:
-    """Append dict to JSONL file (one JSON object per line)."""
-    filepath = Path(filepath)
-    filepath.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(filepath, "a", encoding="utf-8") as f:
-        f.write(json.dumps(data, ensure_ascii=False) + "\n")
-
-
-def load_jsonl(filepath: str | Path) -> Iterator[dict]:
-    """Load dicts from JSONL file."""
-    with open(filepath, "r", encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                yield json.loads(line)
-
-
 def save_metadata(run_dir: str | Path, state: dict) -> None:
     """
     Save current pipeline state to metadata.json in the run directory.
@@ -46,6 +28,7 @@ def save_metadata(run_dir: str | Path, state: dict) -> None:
     Filters out control fields and saves only the meaningful output data.
     """
     serializable_fields = [
+        "checkpoint_thread_id",
         "reddit_thread",
         "triage",
         "script",
@@ -56,6 +39,8 @@ def save_metadata(run_dir: str | Path, state: dict) -> None:
         "audio",
         "scene_images",
         "thumbnail",
+        "video",
+        "youtube_link",
         "status",
     ]
 
