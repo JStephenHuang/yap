@@ -93,4 +93,4 @@ def narrate_story(state: CreepypastaState) -> Command:
     }
     
     save_metadata(state["run_dir"], {**state, **update})
-    return Command(update=update, goto="__end__")
+    return Command(update=update, goto="generate_images")

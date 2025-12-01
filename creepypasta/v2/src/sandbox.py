@@ -180,10 +180,42 @@ def test_tts():
     logger.info(f"Done! Saved to output/test_tts.wav ({len(audio_bytes)} bytes)")
 
 
+def test_tti():
+    """Test Juggernaut XI image generation (CUDA only)."""
+    from pathlib import Path
+    from tti import create_tti, unload_all_tti
+
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
+
+    logger.info("Loading Juggernaut XI...")
+    tti = create_tti("juggernaut")
+
+    prompt = "dark basement with old wooden door, red moonlight through window, horror atmosphere, cinematic lighting, photorealistic, 8k"
+    negative_prompt = "bright, cheerful, cartoon, anime, text, watermark"
+
+    logger.info("Generating test image...")
+    image = tti.generate(
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        width=1280,
+        height=720,
+        num_inference_steps=30,
+        guidance_scale=7.0,
+        seed=42,
+        output_path=output_dir / "test_tti.png",
+    )
+
+    logger.info(f"Done! Saved to output/test_tti.png ({image.size[0]}x{image.size[1]})")
+    unload_all_tti()
+
+
 def main():
     """Run the full pipeline test."""
-    run_pipeline(enable_reviews=False)
+    # run_pipeline(enable_reviews=False)
     # test_tts()
+    # test_tti()
+    pass
 
 
 if __name__ == "__main__":

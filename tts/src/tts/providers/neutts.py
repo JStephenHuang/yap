@@ -9,7 +9,13 @@ import numpy as np
 import soundfile as sf
 
 from tts.providers.base import BaseTTSProvider
+from tts.utils import chunk_text, crossfade_concat
 from tts.vendor.neutts import NeuTTSAir
+
+
+# Max characters per chunk (conservative estimate to stay within 2048 token limit)
+# Reference text + phonemes + speech tokens all compete for the context window
+MAX_CHUNK_CHARS = 300
 
 
 class NeuTTSProvider(BaseTTSProvider):
@@ -98,19 +104,28 @@ class NeuTTSProvider(BaseTTSProvider):
         ref_codes = self._ref_codes_cache[voice_id]
         _, ref_text = self._voices[voice_id]
 
-        # Generate speech
-        wav = self._model.infer(text, ref_codes, ref_text)
+        # Chunk text to stay within token limit
+        chunks = chunk_text(text, MAX_CHUNK_CHARS)
+
+        # Generate audio for each chunk
+        wavs = []
+        for chunk in chunks:
+            wav = self._model.infer(chunk, ref_codes, ref_text)
+            wavs.append(wav)
+
+        # Concatenate with crossfade (24kHz sample rate)
+        final_wav = crossfade_concat(wavs, sample_rate=24000)
 
         # Convert to WAV bytes
         buffer = io.BytesIO()
-        sf.write(buffer, wav, 24000, format="WAV")
+        sf.write(buffer, final_wav, 24000, format="WAV")
         audio_bytes = buffer.getvalue()
 
         # Optionally save to file
         if output_path:
             output_path = Path(output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            sf.write(str(output_path), wav, 24000)
+            sf.write(str(output_path), final_wav, 24000)
 
         return audio_bytes
 

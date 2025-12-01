@@ -10,12 +10,17 @@ dependencies = [
     "praw>=7.8.1",
     "pydantic-settings>=2.12.0",
     "python-dotenv>=1.2.1",
+    "ffmpeg-python>=0.2.0",
+    "google-api-python-client>=2.0.0",
+    "google-auth-oauthlib>=1.0.0",
+    "rich>=13.0.0",
     "llm",
     "tts",
+    "tti",
 ]
 
 [project.scripts]
-scrape-reddit = "services.reddit_scraper:run"
+scrape-reddit = "infrastructure.reddit_scraper:run"
 
 [tool.uv]
 package = true
@@ -23,3 +28,4 @@ package = true
 [tool.uv.sources]
 llm = { path = "../../llm", editable = true }
 tts = { path = "../../tts", editable = true }
+tti = { path = "../../tti", editable = true }

@@ -93,3 +93,48 @@ review_yt_metadata = create_review_node(
     next_node="narrate_story",
     review_name="yt_metadata",
 )
+
+
+def review_video(state: CreepypastaState, config: dict) -> Command:
+    """
+    Final review before YouTube upload.
+
+    Interrupts to let user review the video. If approved, proceeds to upload.
+    If rejected, saves checkpoint thread_id to metadata so you can resume later.
+    """
+    from infrastructure.json import save_metadata
+
+    video = state["video"]
+    yt_title = state["yt_title"]
+    thumbnail = state["thumbnail"]
+    run_dir = state["run_dir"]
+
+    # Get checkpoint thread_id from config
+    thread_id = config["configurable"]["thread_id"]
+
+    logger.info("Interrupting for final video review")
+
+    response = interrupt({
+        "type": "final_video_review",
+        "output": {
+            "video": video,
+            "title": yt_title,
+            "thumbnail": thumbnail,
+        },
+        "message": "Review final video before YouTube upload. Reply 'approve' to upload or 'reject' to skip upload (can resume later).",
+    })
+
+    response_stripped = response.strip().lower()
+
+    if response_stripped == "approve":
+        logger.info("Video approved, proceeding to upload")
+        return Command(goto="upload_to_youtube")
+    else:
+        logger.info("Video rejected, saving checkpoint thread_id for later resume")
+        update = {
+            "status": "pending_upload",
+            "message": response,
+            "checkpoint_thread_id": thread_id,
+        }
+        save_metadata(run_dir, {**state, **update})
+        return Command(update=update, goto="__end__")

@@ -32,9 +32,12 @@ class CreepypastaState(TypedDict):
     audio: Optional[str]
     scene_images: Optional[list[str]]
     thumbnail: Optional[str]
+    video: Optional[str]
+    youtube_link: Optional[str]
 
     # Review system
     current_feedback: Optional[str]
+    checkpoint_thread_id: Optional[str]
 
     # Status tracking
     status: str
