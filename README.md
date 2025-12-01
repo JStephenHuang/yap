@@ -1,3 +1,3 @@
 # YAP
 
-The only YAP project is creepypastas.
+The only current YAP project is creepypastas. (see under creepypasta folder)
