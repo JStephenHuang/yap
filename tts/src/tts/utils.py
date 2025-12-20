@@ -115,7 +115,7 @@ def chunk_text(
 def crossfade_concat(
     wavs: list[np.ndarray],
     sample_rate: int = 24000,
-    crossfade_ms: int = 100,
+    crossfade_ms: int = 150,
 ) -> np.ndarray:
     """
     Concatenate audio arrays with crossfade to smooth transitions.
@@ -123,7 +123,7 @@ def crossfade_concat(
     Args:
         wavs: List of audio arrays to concatenate
         sample_rate: Audio sample rate (default 24kHz)
-        crossfade_ms: Crossfade duration in milliseconds
+        crossfade_ms: Crossfade duration in milliseconds (default 150ms)
 
     Returns:
         Concatenated audio array

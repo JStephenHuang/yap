@@ -2,13 +2,15 @@
 Video generation configuration.
 """
 
+from pathlib import Path
+
 
 class VideoConfig:
     """Video node configuration."""
 
     # Timing
     INTRO_DURATION: float = 5.0
-    CROSSFADE_DURATION: float = 2.0
+    CROSSFADE_DURATION: float = 2.0  # Used for intro fade-in and image crossfades
 
     # Video settings
     WIDTH: int = 1280
@@ -27,7 +29,11 @@ class VideoConfig:
     # Font for title
     FONT_PATH: str = "assets/fonts/FoulFiend.ttf"
     TITLE_FONT_SIZE: int = 32
-    CREDIT_FONT_SIZE: int = 16
+
+    # Audio levels
+    NARRATION_VOLUME: float = 2.0  # Boost narration (1.0 = original)
+    AMBIENT_VOLUME: float = 0.15   # Background ambient level
+    AMBIENT_PATH: Path | None = Path("assets/ambient/hanging_garden.mp3")  # Set to None to disable
 
 
 video_config = VideoConfig()

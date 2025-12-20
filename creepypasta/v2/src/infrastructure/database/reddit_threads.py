@@ -116,10 +116,10 @@ class RedditThreadRepository:
         self._conn.commit()
 
     def get_raw(self, limit: int = 100) -> list[RedditThreadRow]:
-        """Get unprocessed threads (status = 'raw')."""
+        """Get unprocessed threads (status = 'scraped')."""
         cursor = self._conn.execute("""
             SELECT * FROM reddit_threads
-            WHERE status = 'raw'
+            WHERE status = 'scraped'
             ORDER BY score DESC
             LIMIT ?
         """, (limit,))
@@ -130,7 +130,7 @@ class RedditThreadRepository:
         """Get single highest-scored unprocessed thread, or None if queue empty."""
         cursor = self._conn.execute("""
             SELECT * FROM reddit_threads
-            WHERE status = 'raw'
+            WHERE status = 'scraped'
             ORDER BY score DESC
             LIMIT 1
         """)

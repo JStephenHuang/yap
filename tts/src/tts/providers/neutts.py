@@ -13,9 +13,9 @@ from tts.utils import chunk_text, crossfade_concat
 from tts.vendor.neutts import NeuTTSAir
 
 
-# Max characters per chunk (conservative estimate to stay within 2048 token limit)
-# Reference text + phonemes + speech tokens all compete for the context window
-MAX_CHUNK_CHARS = 300
+# Max characters per chunk (NeuTTS has ~2048 token limit for ref + text + audio tokens)
+# Larger chunks = more natural flow but risk hitting limit
+MAX_CHUNK_CHARS = 400
 
 
 class NeuTTSProvider(BaseTTSProvider):

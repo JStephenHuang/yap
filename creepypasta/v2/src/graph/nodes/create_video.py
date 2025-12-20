@@ -50,12 +50,19 @@ def create_video(state: CreepypastaState) -> Command:
     logger.info("Creating video...")
     output_path = run_dir / "video.mp4"
 
+    # Resolve ambient path relative to project root
+    ambient_path = None
+    if video_config.AMBIENT_PATH:
+        ambient_path = Path(video_config.AMBIENT_PATH)
+        if not ambient_path.is_absolute():
+            # Make relative to project root (v2/)
+            ambient_path = Path(__file__).parents[3] / ambient_path
+
     ffmpeg_create_video(
         image_paths=[Path(p) for p in scene_images],
         audio_path=Path(audio),
         output_path=output_path,
         title=thread["title"],
-        author=thread["author"],
         intro_duration=video_config.INTRO_DURATION,
         crossfade_duration=video_config.CROSSFADE_DURATION,
         width=video_config.WIDTH,
@@ -63,11 +70,13 @@ def create_video(state: CreepypastaState) -> Command:
         framerate=video_config.FRAMERATE,
         font_path=video_config.FONT_PATH,
         title_font_size=video_config.TITLE_FONT_SIZE,
-        credit_font_size=video_config.CREDIT_FONT_SIZE,
         vcodec=video_config.VCODEC,
         acodec=video_config.ACODEC,
         pix_fmt=video_config.PIX_FMT,
         preset=video_config.PRESET,
+        narration_volume=video_config.NARRATION_VOLUME,
+        ambient_path=ambient_path,
+        ambient_volume=video_config.AMBIENT_VOLUME,
     )
 
     update = {

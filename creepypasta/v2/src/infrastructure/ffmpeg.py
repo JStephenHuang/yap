@@ -18,22 +18,21 @@ def get_audio_duration(audio_path: Path) -> float:
 
 def create_intro_stream(
     title: str,
-    author: str,
     duration: float,
+    fade_duration: float,
     width: int,
     height: int,
     framerate: int,
     font_path: str,
     title_font_size: int,
-    credit_font_size: int,
 ):
-    """Create black screen with centered title + author text."""
+    """Create black screen with centered title that fades in."""
     stream = ffmpeg.input(
         f"color=c=black:s={width}x{height}:r={framerate}:d={duration}",
         f="lavfi",
     )
 
-    # Title text (centered, visible from 0.5s to 4s)
+    # Title text (centered, appears after fade starts)
     stream = stream.filter(
         "drawtext",
         fontfile=font_path,
@@ -42,20 +41,10 @@ def create_intro_stream(
         fontsize=title_font_size,
         x="(w-text_w)/2",
         y="(h-text_h)/2",
-        enable="between(t,0.5,4)",
     )
 
-    # Author credit (below title)
-    stream = stream.filter(
-        "drawtext",
-        fontfile=font_path,
-        text=author,
-        fontcolor="white",
-        fontsize=credit_font_size,
-        x="(w-text_w)/2",
-        y="(h-text_h)/2 + 64",
-        enable="between(t,0.5,4)",
-    )
+    # Fade in the intro
+    stream = stream.filter("fade", type="in", start_time=0, duration=fade_duration)
 
     stream = stream.filter(
         "scale", w=width, h=height, force_original_aspect_ratio="increase"
@@ -98,7 +87,6 @@ def create_video(
     audio_path: Path,
     output_path: Path,
     title: str,
-    author: str,
     intro_duration: float,
     crossfade_duration: float,
     width: int,
@@ -106,36 +94,38 @@ def create_video(
     framerate: int,
     font_path: str,
     title_font_size: int,
-    credit_font_size: int,
     vcodec: str,
     acodec: str,
     pix_fmt: str,
     preset: str = "p4",
+    narration_volume: float = 2.0,
+    ambient_path: Path | None = None,
+    ambient_volume: float = 0.15,
 ) -> Path:
     """
     Create video from images + audio.
 
     Flow:
-    1. Intro (black screen with title/author)
+    1. Intro (black screen with title, fades in)
     2. Scene images (equally spaced, with crossfades)
-    3. Audio (delayed by intro duration)
+    3. Narration audio (starts after intro fade completes)
+    4. Ambient audio (loops underneath, optional)
     """
     audio_duration = get_audio_duration(audio_path)
     image_duration = audio_duration / len(image_paths)
 
     logger.info(f"Audio: {audio_duration:.1f}s, {len(image_paths)} images @ {image_duration:.1f}s each")
 
-    # Create intro
+    # Create intro (with fade in using same duration as crossfades)
     intro = create_intro_stream(
         title=title,
-        author=author,
         duration=intro_duration,
+        fade_duration=crossfade_duration,
         width=width,
         height=height,
         framerate=framerate,
         font_path=font_path,
         title_font_size=title_font_size,
-        credit_font_size=credit_font_size,
     )
 
     # Create image streams
@@ -161,17 +151,33 @@ def create_video(
     # Apply final fade out to video
     video_with_fade = video[0].filter("fade", type="out", start_time=fade_out_start, duration=crossfade_duration)
 
-    # Audio with delay and fade out
-    audio = ffmpeg.input(str(audio_path))
-    audio = audio.filter("adelay", delays=f"{intro_duration}s", all=True)
-    audio = audio.filter("afade", type="out", start_time=fade_out_start, duration=crossfade_duration)
+    # Narration: boost volume, delay until after intro fade completes, fade out at end
+    narration_delay = intro_duration  # Start narration when intro ends
+    narration = ffmpeg.input(str(audio_path))
+    narration = narration.filter("volume", volume=narration_volume)
+    narration = narration.filter("adelay", delays=f"{int(narration_delay * 1000)}|{int(narration_delay * 1000)}", all=False)
+    narration = narration.filter("afade", type="out", start_time=fade_out_start, duration=crossfade_duration)
+
+    # Mix with ambient if provided
+    if ambient_path and ambient_path.exists():
+        logger.info(f"Adding ambient audio: {ambient_path}")
+        # Loop ambient for total duration, set volume low
+        ambient = ffmpeg.input(str(ambient_path), stream_loop=-1, t=total_duration)
+        ambient = ambient.filter("volume", volume=ambient_volume)
+        ambient = ambient.filter("afade", type="in", start_time=0, duration=2.0)
+        ambient = ambient.filter("afade", type="out", start_time=fade_out_start, duration=crossfade_duration)
+        
+        # Mix narration + ambient
+        audio_mixed = ffmpeg.filter([narration, ambient], "amix", inputs=2, duration="longest")
+    else:
+        audio_mixed = narration
 
     # Output
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     ffmpeg.output(
         video_with_fade,
-        audio,
+        audio_mixed,
         str(output_path),
         vcodec=vcodec,
         acodec=acodec,

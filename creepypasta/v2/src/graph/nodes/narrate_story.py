@@ -74,7 +74,7 @@ def narrate_story(state: CreepypastaState) -> Command:
     output_path = run_dir / "narration.wav"
 
     # Synthesize
-    logger.info("Synthesizing audio (this may take a while on CPU)...")
+    logger.info("Synthesizing audio...")
     tts.synthesize(
         text=script,
         voice_id=speaker.name,
