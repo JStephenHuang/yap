@@ -2,12 +2,14 @@
 YouTube upload configuration.
 """
 
+from config.base import EnvConfig
 
-class YouTubeConfig:
+
+class YouTubeConfig(EnvConfig):
     """YouTube node configuration."""
 
     # OAuth credentials (load from env/secrets)
-    CLIENT_SECRET_FILE: str = "secrets/youtube_client_secret.json"
+    YOUTUBE_CLIENT_SECRET_FILE: str
     TOKEN_DIR: str = "token_files"
 
     # API scopes

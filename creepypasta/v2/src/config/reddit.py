@@ -1,4 +1,7 @@
-class RedditConfig():
+from config.base import EnvConfig
+
+
+class RedditConfig(EnvConfig):
     """Reddit scraper configuration"""
 
     REDDIT_CLIENT_ID: str

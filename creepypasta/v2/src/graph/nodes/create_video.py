@@ -67,6 +67,7 @@ def create_video(state: CreepypastaState) -> Command:
         vcodec=video_config.VCODEC,
         acodec=video_config.ACODEC,
         pix_fmt=video_config.PIX_FMT,
+        preset=video_config.PRESET,
     )
 
     update = {

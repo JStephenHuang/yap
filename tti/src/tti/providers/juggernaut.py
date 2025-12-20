@@ -26,18 +26,24 @@ class JuggernautProvider(BaseTTIProvider):
         self._pipe: StableDiffusionXLPipeline | None = None
 
     def load(self, model: str = MODEL_REPO, **kwargs) -> None:
-        """Load Juggernaut XI on CUDA."""
+        """Load Juggernaut XI on CUDA with configurable precision."""
+        device = kwargs.get("device", "cuda")
+        torch_dtype_str = kwargs.get("torch_dtype", "float16")
+        torch_dtype = torch.float16 if torch_dtype_str == "float16" else torch.float32
+
         logger.info(f"Downloading: {MODEL_FILE}")
         local_path = hf_hub_download(repo_id=model, filename=MODEL_FILE)
 
-        logger.info("Loading Juggernaut XI on CUDA...")
+        logger.info(f"Loading Juggernaut XI on {device} ({torch_dtype_str})...")
         self._pipe = StableDiffusionXLPipeline.from_single_file(
             local_path,
-            torch_dtype=torch.float32,
-        ).to("cuda")
+            torch_dtype=torch_dtype,
+            use_safetensors=True,
+        ).to(device)
 
         self._pipe.enable_attention_slicing()
-        self._pipe.enable_vae_slicing()
+        self._pipe.vae.enable_slicing()
+        self._pipe.vae.enable_tiling()  # Helps with large images
         logger.info("Model loaded")
 
     def generate(

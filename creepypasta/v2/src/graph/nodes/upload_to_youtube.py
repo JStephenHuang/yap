@@ -45,7 +45,7 @@ def upload_to_youtube(state: CreepypastaState) -> Command:
     # Create YouTube service
     logger.info("Authenticating with YouTube...")
     service = create_youtube_service(
-        client_secret_file=youtube_config.CLIENT_SECRET_FILE,
+        client_secret_file=youtube_config.YOUTUBE_CLIENT_SECRET_FILE,
         token_dir=youtube_config.TOKEN_DIR,
         scopes=youtube_config.SCOPES,
     )

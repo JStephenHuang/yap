@@ -95,7 +95,10 @@ review_yt_metadata = create_review_node(
 )
 
 
-def review_video(state: CreepypastaState, config: dict) -> Command:
+from langchain_core.runnables import RunnableConfig
+
+
+def review_video(state: CreepypastaState, config: RunnableConfig) -> Command:
     """
     Final review before YouTube upload.
 

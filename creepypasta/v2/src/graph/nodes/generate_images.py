@@ -44,9 +44,13 @@ def generate_images(state: CreepypastaState) -> Command:
     logger.info("Unloading TTS to free memory...")
     unload_all_tts()
 
-    # Load TTI
+    # Load TTI with config options
     logger.info("Loading Juggernaut XI...")
-    tti = create_tti(tti_config.PROVIDER)
+    tti = create_tti(
+        tti_config.PROVIDER,
+        device=tti_config.DEVICE,
+        torch_dtype=tti_config.TORCH_DTYPE,
+    )
 
     # Generate scene images
     scene_images = []

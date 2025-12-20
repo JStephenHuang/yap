@@ -3,7 +3,7 @@ name = "v2"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "langgraph>=1.0.2",
     "langgraph-checkpoint-sqlite>=3.0.0",
@@ -17,6 +17,10 @@ dependencies = [
     "llm",
     "tts",
     "tti",
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "datasets>=3.0.0",
 ]
 
 [project.scripts]
@@ -24,8 +28,17 @@ scrape-reddit = "infrastructure.reddit_scraper:run"
 
 [tool.uv]
 package = true
+index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
 llm = { path = "../../llm", editable = true }
 tts = { path = "../../tts", editable = true }
 tti = { path = "../../tti", editable = true }
+torch = { index = "pytorch-cu124" }
+torchvision = { index = "pytorch-cu124" }
+torchaudio = { index = "pytorch-cu124" }
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true

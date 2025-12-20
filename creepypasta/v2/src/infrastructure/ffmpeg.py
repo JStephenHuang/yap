@@ -110,6 +110,7 @@ def create_video(
     vcodec: str,
     acodec: str,
     pix_fmt: str,
+    preset: str = "p4",
 ) -> Path:
     """
     Create video from images + audio.
@@ -152,21 +153,30 @@ def create_video(
 
     # Concat intro + images
     video = ffmpeg.concat(intro, *image_streams, v=1, a=0).node
+    
+    # Calculate total duration for fade out
+    total_duration = intro_duration + (image_duration * len(image_paths))
+    fade_out_start = total_duration - crossfade_duration
+    
+    # Apply final fade out to video
+    video_with_fade = video[0].filter("fade", type="out", start_time=fade_out_start, duration=crossfade_duration)
 
-    # Audio with delay
+    # Audio with delay and fade out
     audio = ffmpeg.input(str(audio_path))
     audio = audio.filter("adelay", delays=f"{intro_duration}s", all=True)
+    audio = audio.filter("afade", type="out", start_time=fade_out_start, duration=crossfade_duration)
 
     # Output
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     ffmpeg.output(
-        video[0],
+        video_with_fade,
         audio,
         str(output_path),
         vcodec=vcodec,
         acodec=acodec,
         pix_fmt=pix_fmt,
+        preset=preset,
         r=framerate,
         shortest=None,
     ).run(overwrite_output=True)
