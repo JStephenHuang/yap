@@ -115,7 +115,8 @@ def chunk_text(
 def crossfade_concat(
     wavs: list[np.ndarray],
     sample_rate: int = 24000,
-    crossfade_ms: int = 150,
+    crossfade_ms: int = 50,
+    pad_end_ms: int = 100,
 ) -> np.ndarray:
     """
     Concatenate audio arrays with crossfade to smooth transitions.
@@ -123,7 +124,8 @@ def crossfade_concat(
     Args:
         wavs: List of audio arrays to concatenate
         sample_rate: Audio sample rate (default 24kHz)
-        crossfade_ms: Crossfade duration in milliseconds (default 150ms)
+        crossfade_ms: Crossfade duration in milliseconds (default 50ms)
+        pad_end_ms: Silence padding at end of each chunk before crossfade (default 100ms)
 
     Returns:
         Concatenated audio array
@@ -134,11 +136,22 @@ def crossfade_concat(
         return wavs[0]
 
     crossfade_samples = int(sample_rate * crossfade_ms / 1000)
+    pad_samples = int(sample_rate * pad_end_ms / 1000)
+
+    # Add silence padding to end of each chunk (except last) to protect word endings
+    padded_wavs = []
+    for i, wav in enumerate(wavs):
+        if i < len(wavs) - 1:
+            # Add silence padding before crossfade region
+            padded = np.concatenate([wav, np.zeros(pad_samples, dtype=wav.dtype)])
+            padded_wavs.append(padded)
+        else:
+            padded_wavs.append(wav)
 
     # Build output with crossfades
-    result = wavs[0].copy()
+    result = padded_wavs[0].copy()
 
-    for wav in wavs[1:]:
+    for wav in padded_wavs[1:]:
         if len(result) < crossfade_samples or len(wav) < crossfade_samples:
             # Not enough samples for crossfade, just concatenate
             result = np.concatenate([result, wav])

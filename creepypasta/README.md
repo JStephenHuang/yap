@@ -48,7 +48,10 @@ nvcc --version      # verify CUDA
 ```
 
 **FFmpeg with NVENC:**
-Download `ffmpeg-release-full.7z` from [gyan.dev/ffmpeg/builds](https://www.gyan.dev/ffmpeg/builds/), extract to `C:\ffmpeg`, add `C:\ffmpeg\bin` to PATH.
+
+```
+scoop install ffmpeg
+```
 
 ```powershell
 ffmpeg -encoders | findstr nvenc   # should show hevc_nvenc, h264_nvenc
@@ -57,21 +60,17 @@ ffmpeg -encoders | findstr nvenc   # should show hevc_nvenc, h264_nvenc
 **eSpeak NG (required for TTS phonemizer):**
 
 ```powershell
-winget install espeak.espeak-ng
+scoop install espeak.espeak-ng
 ```
 
-Set environment variables (add to your `$PROFILE` for persistence):
-
-```powershell
-$env:PATH += ";C:\Program Files\eSpeak NG"
+```
 $env:PHONEMIZER_ESPEAK_LIBRARY = "C:\Program Files\eSpeak NG\libespeak-ng.dll"
-$env:PHONEMIZER_ESPEAK_PATH = "C:\Program Files\eSpeak NG\espeak-ng.exe"
 ```
 
 **uv (Python package manager):**
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+scoop install uv
 ```
 
 Restart terminal after install.
@@ -120,7 +119,10 @@ YOUTUBE_CLIENT_SECRET_FILE=youtube_client_secret.json
 YOUTUBE_CHANNEL_ID=your_channel_id
 ```
 
-Place your YouTube OAuth client secret JSON at `creepypasta/v2/secrets/youtube_client_secret.json`.
+For `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET`: https://www.geeksforgeeks.org/python/how-to-get-client_id-and-client_secret-for-python-reddit-api-registration/
+
+
+Place your YouTube OAuth client secret JSON at `creepypasta/v2/youtube_client_secret.json`.
 
 #### 4. Run Pipeline
 

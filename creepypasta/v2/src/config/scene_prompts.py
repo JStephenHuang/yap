@@ -3,20 +3,20 @@ class ScenePromptsConfig:
 
     LLM_PROVIDER: str = "langchain-groq"
     LLM_MODEL: str = "llama-3.3-70b-versatile"
-    LLM_TEMPERATURE: float = 0.7
+    LLM_TEMPERATURE: float = 0.5
 
     # Fixed number of scenes
     NUM_SCENES: int = 3
 
     # Visual style applied to all prompts
-    VISUAL_STYLE: str = "dark atmospheric horror, cinematic lighting, photorealistic, 8k, highly detailed"
+    VISUAL_STYLE: str = "dark atmospheric horror, cinematic lighting"
 
     SYSTEM_PROMPT: str = """You are a visual director for horror narration videos.
 
 Create {num_scenes} image generation prompts for key story moments.
 
-RULES:
-- Prompts must follow story CHRONOLOGICALLY (beginning → middle → climax)
+CRITICAL RULES:
+- Prompts must follow story CHRONOLOGICALLY (e.g. scene 1: beginning → scene 2: middle → scene 3: climax)
 - Each captures a KEY VISUAL MOMENT viewers see while listening
 - Be specific: subject, setting, lighting, mood, camera angle
 - NO text/words/letters in images
@@ -24,9 +24,7 @@ RULES:
 - Each prompt is standalone (image generator has no cross-prompt context)
 
 STYLE: {visual_style}
-
-Return ONLY a JSON object:
-{{"scene_prompts": ["prompt 1", "prompt 2", "prompt 3"]}}"""
+"""
 
     USER_PROMPT: str = """Story:
 

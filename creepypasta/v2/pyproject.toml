@@ -17,14 +17,15 @@ dependencies = [
     "llm",
     "tts",
     "tti",
-    "torch",
-    "torchvision",
-    "torchaudio",
     "datasets>=3.0.0",
 ]
 
+[project.optional-dependencies]
+cu124 = ["torch", "torchvision", "torchaudio"]
+cu126 = ["torch", "torchvision", "torchaudio"]
+
 [project.scripts]
-scrape-reddit = "infrastructure.reddit_scraper:run"
+scrape-reddit = "scrape:run"
 
 [tool.uv]
 package = true
@@ -34,11 +35,25 @@ index-strategy = "unsafe-best-match"
 llm = { path = "../../llm", editable = true }
 tts = { path = "../../tts", editable = true }
 tti = { path = "../../tti", editable = true }
-torch = { index = "pytorch-cu124" }
-torchvision = { index = "pytorch-cu124" }
-torchaudio = { index = "pytorch-cu124" }
+torch = [
+    { index = "pytorch-cu124", marker = "extra == 'cu124'" },
+    { index = "pytorch-cu126", marker = "extra == 'cu126' and extra != 'cu124'" },
+]
+torchvision = [
+    { index = "pytorch-cu124", marker = "extra == 'cu124'" },
+    { index = "pytorch-cu126", marker = "extra == 'cu126' and extra != 'cu124'" },
+]
+torchaudio = [
+    { index = "pytorch-cu124", marker = "extra == 'cu124'" },
+    { index = "pytorch-cu126", marker = "extra == 'cu126' and extra != 'cu124'" },
+]
 
 [[tool.uv.index]]
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true

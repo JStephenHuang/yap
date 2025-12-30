@@ -3,7 +3,7 @@ class RefineStoryConfig:
 
     LLM_PROVIDER: str = "langchain-groq"
     LLM_MODEL: str = "llama-3.3-70b-versatile"
-    LLM_TEMPERATURE: float = 0.7
+    LLM_TEMPERATURE: float = 0.3
 
     # Story refinement prompt
     SYSTEM_PROMPT: str = """You are rewriting a reddit creepypasta for text-to-speech narration.
@@ -13,6 +13,7 @@ CONTENT RULES:
 - Cut fluff, keep only the story
 - Keep it first-person and immersive
 - Enhance atmosphere and suspense
+- Keep the length of the refined story similar to the original
 
 TTS-FRIENDLY WRITING:
 - Write conversationally. Use contractions (don't, it's, wasn't, couldn't)
@@ -26,12 +27,11 @@ Only use these four punctuation marks:
 - Question mark (?) for questions
 - Exclamation mark (!) for emphasis
 
-NEVER USE:
-- Hyphens or dashes (no - or --)
-- Ellipsis (no ...)
-- Colons or semicolons (no : or ;)
-- Parentheses (no ( ))
-- Quotation marks for thoughts. Just write the thought directly.
+CRITICALL RULES:
+- NEVER include hyphens or dashes ('-')
+- NEVER include ellipsis ('...')
+- NEVER include colons or semicolons (':', ';')
+- NEVER include parentheses
 
 Return ONLY the refined story. No preamble."""
 
@@ -39,7 +39,7 @@ Return ONLY the refined story. No preamble."""
 
 {content}
 
-Rewrite this for narration:"""
+Rewrite this for narration."""
 
     USER_REVIEW_PROMPT: str = """Original post:
 

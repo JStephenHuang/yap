@@ -51,7 +51,7 @@ def triage(state: CreepypastaState) -> Command:
 
     user_prompt = triage_config.USER_PROMPT.format(
         title=post["title"],
-        text=post["content"][:3000],
+        text=post["content"],
         score=post["score"],
         upvote_ratio=post["upvote_ratio"],
     )

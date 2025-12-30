@@ -3678,11 +3678,15 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "rich" },
+    { name = "tti" },
+    { name = "tts" },
+]
+
+[package.optional-dependencies]
+cu124 = [
     { name = "torch" },
     { name = "torchaudio" },
     { name = "torchvision" },
-    { name = "tti" },
-    { name = "tts" },
 ]
 
 [package.metadata]
@@ -3698,12 +3702,19 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "rich", specifier = ">=13.0.0" },
-    { name = "torch", index = "https://download.pytorch.org/whl/cu124" },
-    { name = "torchaudio", index = "https://download.pytorch.org/whl/cu124" },
-    { name = "torchvision", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torch", marker = "extra == 'cu124'", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torch", marker = "extra != 'cu124' and extra == 'cu126'", index = "https://download.pytorch.org/whl/cu126" },
+    { name = "torch", marker = "extra == 'cu124' and extra == 'cu126'", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torchaudio", marker = "extra == 'cu124'", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torchaudio", marker = "extra != 'cu124' and extra == 'cu126'", index = "https://download.pytorch.org/whl/cu126" },
+    { name = "torchaudio", marker = "extra == 'cu124' and extra == 'cu126'", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torchvision", marker = "extra == 'cu124'", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torchvision", marker = "extra != 'cu124' and extra == 'cu126'", index = "https://download.pytorch.org/whl/cu126" },
+    { name = "torchvision", marker = "extra == 'cu124' and extra == 'cu126'", index = "https://download.pytorch.org/whl/cu124" },
     { name = "tti", editable = "../../tti" },
     { name = "tts", editable = "../../tts" },
 ]
+provides-extras = ["cu124", "cu126"]
 
 [[package]]
 name = "vector-quantize-pytorch"

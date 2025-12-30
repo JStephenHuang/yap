@@ -34,6 +34,12 @@ from graph.state import CreepypastaState
 from config.base import BaseConfig
 from infrastructure.database import RedditThreadRepositorySingleton
 
+from infrastructure.database.checkpointer import (
+    find_checkpoint_before_node,
+    update_state_at_checkpoint,
+    get_checkpoint_history_summary,
+)
+
 console = Console()
 
 logging.basicConfig(
@@ -189,6 +195,49 @@ def resume_pipeline(checkpoint_thread_id: str) -> dict:
     return final_state
 
 
+def rerun_from_step(checkpoint_thread_id: str, step: str) -> dict:
+    """Re-run pipeline from a specific step using LangGraph time travel."""
+    
+    step_config = {
+        "narrate": ("narrate_story", ["audio", "scene_images", "thumbnail", "video", "youtube_link"]),
+        "images": ("generate_images", ["scene_images", "thumbnail", "video", "youtube_link"]),
+        "video": ("create_video", ["video", "youtube_link"]),
+        "upload": ("upload_to_youtube", ["youtube_link"]),
+    }
+    
+    if step not in step_config:
+        console.print(f"[red]Invalid step. Valid: {', '.join(step_config.keys())}[/red]")
+        return {}
+    
+    target_node, fields_to_clear = step_config[step]
+    app = compile_graph()
+    
+    checkpoint_config = find_checkpoint_before_node(app, checkpoint_thread_id, target_node)
+    if not checkpoint_config:
+        console.print(f"[red]No checkpoint found before '{target_node}'[/red]")
+        for item in get_checkpoint_history_summary(app, checkpoint_thread_id):
+            console.print(f"  [dim]{item}[/dim]")
+        return {}
+    
+    updates = {"enable_reviews": False, **{f: None for f in fields_to_clear}}
+    update_state_at_checkpoint(app, checkpoint_config, updates)
+    
+    console.print(f"[green]Resuming from '{target_node}'...[/green]\n")
+    app.invoke(None, config=checkpoint_config)
+    
+    final_state = review_loop(app, {"configurable": {"thread_id": checkpoint_thread_id}})
+    
+    status = final_state.get("status", "unknown")
+    summary = f"[bold]Status:[/bold] [{'green' if status in ['completed', 'uploaded'] else 'yellow'}]{status}[/]"
+    if final_state.get("video"):
+        summary += f"\n[bold]Video:[/bold] {final_state['video']}"
+    if final_state.get("youtube_link"):
+        summary += f"\n[bold]YouTube:[/bold] {final_state['youtube_link']}"
+    console.print(Panel(summary, title="[bold green]Complete[/bold green]", border_style="green"))
+
+    return final_state
+
+
 def show_status():
     """Show queue statistics."""
     repo = RedditThreadRepositorySingleton()
@@ -240,6 +289,7 @@ Examples:
   uv run python src/main.py run --no-review  # Skip reviews
   uv run python src/main.py test             # Use test data
   uv run python src/main.py resume abc123    # Resume checkpoint
+  uv run python src/main.py rerun abc123 narrate  # Re-run from step
   uv run python src/main.py status           # Show queue stats
 
 First time? Run: uv run scrape-reddit
@@ -256,6 +306,11 @@ First time? Run: uv run scrape-reddit
 
     resume_parser = subparsers.add_parser("resume", help="Resume from checkpoint")
     resume_parser.add_argument("thread_id", help="Checkpoint thread_id")
+
+    rerun_parser = subparsers.add_parser("rerun", help="Re-run from specific step")
+    rerun_parser.add_argument("thread_id", help="Checkpoint thread_id")
+    rerun_parser.add_argument("step", choices=["narrate", "images", "thumbnail", "video", "upload"],
+                              help="Step to re-run from")
 
     subparsers.add_parser("status", help="Show queue statistics")
 
@@ -306,6 +361,9 @@ Update 2: I think whatever is behind that door... knows I'm listening.""",
 
     elif args.command == "resume":
         resume_pipeline(args.thread_id)
+
+    elif args.command == "rerun":
+        rerun_from_step(args.thread_id, args.step)
 
     elif args.command == "status":
         show_status()

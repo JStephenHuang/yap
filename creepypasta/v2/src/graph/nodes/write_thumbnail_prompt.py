@@ -37,7 +37,6 @@ def write_thumbnail_prompt(state: CreepypastaState) -> Command:
     previous_output = state["thumbnail_prompt"]
 
     title = reddit_thread["title"]
-    story_preview = script[:500]
 
     logger.info("Generating thumbnail prompt...")
 
@@ -55,14 +54,14 @@ def write_thumbnail_prompt(state: CreepypastaState) -> Command:
         logger.info("Regenerating with feedback...")
         user_prompt = thumbnail_prompt_config.USER_REVIEW_PROMPT.format(
             title=title,
-            story_preview=story_preview,
+            story=script,
             previous_output=previous_output,
             feedback=feedback,
         )
     else:
         user_prompt = thumbnail_prompt_config.USER_PROMPT.format(
             title=title,
-            story_preview=story_preview,
+            story=script,
         )
 
     result: ThumbnailPromptResult = llm.generate_structured(

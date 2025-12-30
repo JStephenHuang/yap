@@ -3,7 +3,7 @@ class ThumbnailPromptConfig:
 
     LLM_PROVIDER: str = "langchain-groq"
     LLM_MODEL: str = "llama-3.3-70b-versatile"
-    LLM_TEMPERATURE: float = 0.8  # Slightly higher for creative punch
+    LLM_TEMPERATURE: float = 0.5  # Slightly higher for creative punch
 
     VISUAL_STYLE: str = "dark atmospheric horror, cinematic, high contrast, dramatic lighting"
 
@@ -27,15 +27,15 @@ Return ONLY a JSON object:
 
     USER_PROMPT: str = """Story title: {title}
 
-Story summary (first 500 chars):
-{story_preview}
+Story:
+{story}
 
 Generate 1 thumbnail prompt:"""
 
     USER_REVIEW_PROMPT: str = """Story title: {title}
 
-Story summary (first 500 chars):
-{story_preview}
+Story: 
+{story}
 
 Your previous prompt:
 {previous_output}
