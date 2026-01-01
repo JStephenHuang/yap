@@ -153,18 +153,22 @@ uv run python src/main.py restart <checkpoint_id>
 
 ## Configuration
 
-All configuration files are in `v2/src/config/`. Swap models and tweak settings:
+**IMPORTANT:** The project includes boilerplate configuration files with placeholder prompts. You MUST customize the LLM prompts in `v2/src/config/` for your specific needs before running the pipeline.
 
-| File                  | What it controls                              |
+All configuration files are in `v2/src/config/`. Customize prompts and settings:
+
+| File                  | What to customize                             |
 | --------------------- | --------------------------------------------- |
+| `triage.py`           | **Prompts:** Story evaluation criteria        |
+| `refine_story.py`     | **Prompts:** Story refinement rules for TTS   |
+| `scene_prompts.py`    | **Prompts:** Image generation prompt style    |
+| `thumbnail_prompt.py` | **Prompts:** Thumbnail generation requirements|
+| `yt_metadata.py`      | **Prompts:** YouTube title/description format |
 | `tts.py`              | TTS provider, model, speaker voice, chunking  |
 | `tti.py`              | Image model, dimensions, inference steps      |
 | `video.py`            | Intro duration, crossfades, encoding          |
-| `triage.py`           | LLM provider/model for story selection        |
-| `refine_story.py`     | Story refinement prompts                      |
-| `scene_prompts.py`    | Image prompt generation                       |
-| `thumbnail_prompt.py` | Thumbnail prompt generation                   |
-| `yt_metadata.py`      | YouTube title/description generation          |
+
+Each config file that uses LLM prompts contains placeholder text marked with `[Write your ... here]`. Replace these with your own prompts that match your content style and requirements.
 
 ## Output
 

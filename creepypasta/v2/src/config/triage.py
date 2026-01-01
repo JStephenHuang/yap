@@ -7,22 +7,22 @@ class TriageConfig():
 
 
     # Triage evaluation prompt
-    SYSTEM_PROMPT: str = """You are evaluating reddit posts for creepypasta video potential.
+    # TODO: Customize these prompts to define how you want to evaluate Reddit posts for video potential
+    SYSTEM_PROMPT: str = """[Write your system prompt here]
+    
+Define the criteria for evaluating stories. For example:
+- What makes a good story for your channel?
+- What metrics matter (hook, tension, structure, viral potential)?
+- How should the LLM evaluate and respond?"""
 
-A good creepypasta has:
-- Compelling hook in the first few sentences
-- Atmospheric tension and dread
-- Clear narrative structure
-- Viral potential for YouTube
+    USER_PROMPT: str = """[Write your user prompt template here]
 
-Evaluate the post and provide your decision with a one-sentence reason."""
+Use these placeholders: {title}, {text}, {score}, {upvote_ratio}
 
-    USER_PROMPT: str = """Title: {title}
-
-Story:
-{text}
-
-Score: {score} | Upvote Ratio: {upvote_ratio}"""
+For example:
+Title: {title}
+Story: {text}
+Evaluate this post."""
 
 
 # Import this directly: from config.triage import triage_config

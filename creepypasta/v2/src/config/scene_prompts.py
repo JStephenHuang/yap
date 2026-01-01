@@ -11,41 +11,35 @@ class ScenePromptsConfig:
     # Visual style applied to all prompts
     VISUAL_STYLE: str = "dark atmospheric horror, cinematic lighting"
 
-    SYSTEM_PROMPT: str = """You are a visual director for horror narration videos.
+    SYSTEM_PROMPT: str = """[Write your system prompt here]
 
-Create {num_scenes} image generation prompts for key story moments.
+Define how to create image generation prompts. For example:
+- How many scenes? What moments to capture?
+- Visual style (horror, cinematic, etc.)?
+- What to avoid (text, faces, gore)?
+- Prompt structure and length?
 
-CRITICAL RULES:
-- Prompts must follow story CHRONOLOGICALLY (e.g. scene 1: beginning → scene 2: middle → scene 3: climax)
-- Each captures a KEY VISUAL MOMENT viewers see while listening
-- Keep it short and concise (1 sentence)
-- Avoid too much descrption and focus on the specific visual of the scene
-- NO text/words/letters in images
-- NO clear faces (use shadows, back angles, silhouettes - avoids AI artifacts)
-- Each prompt is standalone (image generator has no cross-prompt context)
-- Keep the images SAFE for work (no nudity, gore, or overly graphic content, no graphic blood)
+Use {num_scenes} and {visual_style} placeholders if needed."""
 
-STYLE: {visual_style}
-"""
+    USER_PROMPT: str = """[Write your user prompt template here]
 
-    USER_PROMPT: str = """Story:
+Use {story} and {num_scenes} placeholders.
 
+For example:
+Story:
 {story}
 
 Generate {num_scenes} scene prompts:"""
 
-    USER_REVIEW_PROMPT: str = """Story:
+    USER_REVIEW_PROMPT: str = """[Write your review prompt template here]
 
-{story}
+Use {story}, {previous_output}, {feedback}, and {num_scenes} placeholders.
 
-Your previous prompts:
-{previous_output}
-
-Feedback to address:
-{feedback}
-
-Revise ONLY the prompts mentioned in the feedback. Keep the others unchanged.
-Return all {num_scenes} prompts in order."""
+For example:
+Story: {story}
+Previous: {previous_output}
+Feedback: {feedback}
+Revise:"""
 
 
 scene_prompts_config = ScenePromptsConfig()

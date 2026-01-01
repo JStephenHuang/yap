@@ -7,44 +7,34 @@ class ThumbnailPromptConfig:
 
     VISUAL_STYLE: str = "dark atmospheric horror, cinematic, high contrast, dramatic lighting"
 
-    SYSTEM_PROMPT: str = """You are a YouTube thumbnail designer for horror content.
+    SYSTEM_PROMPT: str = """[Write your system prompt here]
 
-Create ONE image generation prompt for a clickable thumbnail.
+Define how to create thumbnail image prompts. For example:
+- YouTube thumbnail requirements (creepy, dramatic, single focal point)?
+- What to avoid (text, faces, spoilers)?
+- Visual style?
+- Output format (JSON, plain text)?
 
-YOUTUBE THUMBNAIL RULES:
-- It has to be creepy and dark
-- Creates curiosity/dread WITHOUT spoiling the story
-- Single focal point (not busy/cluttered)
-- Dramatic lighting and shadows
-- NO text/words/letters (text is added separately in editing)
-- NO clear faces (silhouettes, obscured, shadows)
-- Should make viewer think "I need to know what happens"
-- Keep the images SAFE for work (no nudity, gore, or overly graphic content)
+Use {visual_style} placeholder if needed."""
 
-STYLE: {visual_style}
+    USER_PROMPT: str = """[Write your user prompt template here]
 
-Return ONLY a JSON object:
-{{"thumbnail_prompt": "your prompt here"}}"""
+Use {title} and {story} placeholders.
 
-    USER_PROMPT: str = """Story title: {title}
+For example:
+Title: {title}
+Story: {story}
+Generate thumbnail prompt:"""
 
-Story:
-{story}
+    USER_REVIEW_PROMPT: str = """[Write your review prompt template here]
 
-Generate 1 thumbnail prompt:"""
+Use {title}, {story}, {previous_output}, and {feedback} placeholders.
 
-    USER_REVIEW_PROMPT: str = """Story title: {title}
-
-Story: 
-{story}
-
-Your previous prompt:
-{previous_output}
-
-Feedback to address:
-{feedback}
-
-Revise the prompt based on the feedback."""
+For example:
+Title: {title}
+Previous: {previous_output}
+Feedback: {feedback}
+Revise:"""
 
 
 thumbnail_prompt_config = ThumbnailPromptConfig()

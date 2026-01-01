@@ -6,53 +6,33 @@ class RefineStoryConfig:
     LLM_TEMPERATURE: float = 0.3
 
     # Story refinement prompt
-    SYSTEM_PROMPT: str = """You are rewriting a reddit creepypasta for text-to-speech narration.
+    # TODO: Customize these prompts to define how you want to refine Reddit stories for narration
+    SYSTEM_PROMPT: str = """[Write your system prompt here]
+    
+Define rules for story refinement. For example:
+- How to adapt Reddit posts for TTS (remove meta commentary, fix grammar)?
+- Writing style (conversational, formal, immersive)?
+- Punctuation rules for natural speech?
+- Length requirements?"""
 
-CONTENT RULES:
-- Remove meta commentary (edits, thank yous, "sorry for formatting", etc.)
-- Cut fluff, keep only the story
-- Keep it first-person and immersive
-- Keep the length of the refined story as close to the same length as the original
+    USER_PROMPT: str = """[Write your user prompt template here]
 
-TTS-FRIENDLY WRITING:
-- Write conversationally. Use contractions (don't, it's, wasn't, couldn't)
-- Keep sentences short and clear. Break long sentences into smaller ones.
-- One idea per sentence. If a sentence has "and" or "but" connecting two complete thoughts, split it.
+Use {content} placeholder for the original text.
 
-PUNCTUATION (CRITICAL):
-Only use these four punctuation marks:
-- Period (.) to end sentences
-- Comma (,) for natural pauses within a sentence
-- Question mark (?) for questions
-- Exclamation mark (!) for emphasis
-
-CRITICALL RULES:
-- NEVER include hyphens or dashes ('-')
-- NEVER include ellipsis ('...')
-- NEVER include colons or semicolons (':', ';')
-- NEVER include parentheses
-- Do NOT overly paraphrase or change the story.
-
-Return ONLY the refined story. No preamble."""
-
-    USER_PROMPT: str = """Original post:
-
+For example:
+Original post:
 {content}
 
-Rewrite this for narration."""
+Rewrite for narration."""
 
-    USER_REVIEW_PROMPT: str = """Original post:
+    USER_REVIEW_PROMPT: str = """[Write your review prompt template here]
 
-{content}
+Use {content}, {previous_output}, and {feedback} placeholders.
 
-Your previous version:
-
-{previous_output}
-
-Feedback to address:
-{feedback}
-
-Revise ONLY the parts mentioned in the feedback. Keep everything else unchanged."""
-
+For example:
+Original: {content}
+Previous: {previous_output}
+Feedback: {feedback}
+Revise:"""
 
 refine_story_config = RefineStoryConfig()
