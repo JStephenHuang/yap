@@ -9,13 +9,8 @@ import numpy as np
 import soundfile as sf
 
 from tts.providers.base import BaseTTSProvider
-from tts.utils import chunk_text, crossfade_concat
+from tts.utils import chunk_text, split_into_sentences, simple_concat
 from tts.vendor.neutts import NeuTTSAir
-
-
-# Max characters per chunk (NeuTTS has ~2048 token limit for ref + text + audio tokens)
-# Larger chunks = more natural flow but risk hitting limit
-MAX_CHUNK_CHARS = 400
 
 
 class NeuTTSProvider(BaseTTSProvider):
@@ -31,7 +26,7 @@ class NeuTTSProvider(BaseTTSProvider):
         self._voices: dict[str, tuple[Path, str]] = {}
         self._ref_codes_cache: dict[str, np.ndarray] = {}
 
-    def load(self, model: str = "neuphonic/neutts-air", device: str = "cpu", **kwargs) -> None:
+    def load(self, model: str = "neuphonic/neutts-air", device: str = "cuda", **kwargs) -> None:
         """
         Load the NeuTTS model.
 
@@ -72,6 +67,10 @@ class NeuTTSProvider(BaseTTSProvider):
         text: str,
         voice_id: str | None = None,
         output_path: Path | None = None,
+        chunk_by_sentence: bool = True,
+        max_chunk_sentences: int = 2,
+        max_chunk_chars: int = 400,
+        silence_ms: int = 300,
     ) -> bytes:
         """
         Synthesize speech from text using a registered voice.
@@ -80,6 +79,9 @@ class NeuTTSProvider(BaseTTSProvider):
             text: Text to synthesize
             voice_id: ID of registered voice to clone
             output_path: Optional path to save audio file
+            chunk_by_sentence: If True, chunk by sentence; if False, use max_chunk_chars
+            max_chunk_chars: Max chars per chunk (only used if chunk_by_sentence=False)
+            silence_ms: Silence padding between chunks in milliseconds
 
         Returns:
             Raw audio bytes (WAV format, 24kHz)
@@ -104,8 +106,11 @@ class NeuTTSProvider(BaseTTSProvider):
         ref_codes = self._ref_codes_cache[voice_id]
         _, ref_text = self._voices[voice_id]
 
-        # Chunk text to stay within token limit
-        chunks = chunk_text(text, MAX_CHUNK_CHARS)
+        # Chunk text
+        if chunk_by_sentence:
+            chunks = split_into_sentences(text, max_chunk_sentences)
+        else:
+            chunks = chunk_text(text, max_chunk_chars)
 
         # Generate audio for each chunk
         wavs = []
@@ -113,8 +118,8 @@ class NeuTTSProvider(BaseTTSProvider):
             wav = self._model.infer(chunk, ref_codes, ref_text)
             wavs.append(wav)
 
-        # Concatenate with crossfade (24kHz sample rate)
-        final_wav = crossfade_concat(wavs, sample_rate=24000)
+        # Concatenate with silence padding (24kHz sample rate)
+        final_wav = simple_concat(wavs, sample_rate=24000, silence_ms=silence_ms)
 
         # Convert to WAV bytes
         buffer = io.BytesIO()

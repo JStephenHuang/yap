@@ -2,7 +2,7 @@ class ThumbnailPromptConfig:
     """YouTube thumbnail prompt configuration"""
 
     LLM_PROVIDER: str = "langchain-groq"
-    LLM_MODEL: str = "llama-3.3-70b-versatile"
+    LLM_MODEL: str = "openai/gpt-oss-120b"
     LLM_TEMPERATURE: float = 0.5  # Slightly higher for creative punch
 
     VISUAL_STYLE: str = "dark atmospheric horror, cinematic, high contrast, dramatic lighting"
@@ -12,13 +12,14 @@ class ThumbnailPromptConfig:
 Create ONE image generation prompt for a clickable thumbnail.
 
 YOUTUBE THUMBNAIL RULES:
-- Must work at SMALL SIZE (simple composition, high contrast, bold shapes)
+- It has to be creepy and dark
 - Creates curiosity/dread WITHOUT spoiling the story
 - Single focal point (not busy/cluttered)
 - Dramatic lighting and shadows
 - NO text/words/letters (text is added separately in editing)
 - NO clear faces (silhouettes, obscured, shadows)
 - Should make viewer think "I need to know what happens"
+- Keep the images SAFE for work (no nudity, gore, or overly graphic content)
 
 STYLE: {visual_style}
 

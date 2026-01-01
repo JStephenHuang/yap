@@ -136,6 +136,9 @@ uv run python src/main.py status
 # Process next story (with reviews)
 uv run python src/main.py run
 
+# Process specific thread by ID
+uv run python src/main.py run <thread_id>
+
 # Process without reviews (auto-approve)
 uv run python src/main.py run --no-review
 
@@ -143,8 +146,42 @@ uv run python src/main.py run --no-review
 uv run python src/main.py test
 
 # Resume from checkpoint
-uv run python src/main.py resume <thread_id>
+uv run python src/main.py resume <checkpoint_id>
 ```
+
+### Pipeline Control Commands
+
+**Rerun from Specific Step**
+
+Re-run from a specific step (skips reviews, clears downstream state):
+
+```bash
+# Re-generate audio + images + video
+uv run python src/main.py rerun <checkpoint_id> narrate
+
+# Re-generate images + video only
+uv run python src/main.py rerun <checkpoint_id> images
+
+# Re-generate video only
+uv run python src/main.py rerun <checkpoint_id> video
+
+# Re-upload to YouTube
+uv run python src/main.py rerun <checkpoint_id> upload
+```
+
+**Restart from Beginning**
+
+Completely restart a run from `refine_story` node, clearing all generated assets:
+
+```bash
+uv run python src/main.py restart <checkpoint_id>
+```
+
+This will:
+- Delete audio, video, images, and thumbnail files
+- Clear all generated prompts and metadata
+- Restart pipeline from story refinement
+- Keep the original Reddit thread data
 
 ### Configuration
 
@@ -152,7 +189,7 @@ All configs are in `src/config/`. Modify to swap models, prompts, or settings:
 
 | File                  | What to tweak                                 |
 | --------------------- | --------------------------------------------- |
-| `tts.py`              | TTS provider, model, speaker voice reference  |
+| `tts.py`              | TTS provider, model, speaker voice reference, chunking settings  |
 | `tti.py`              | Image model, dimensions, inference steps      |
 | `video.py`            | Intro duration, crossfades, encoding settings |
 | `triage.py`           | LLM provider/model, triage prompt             |
@@ -160,6 +197,17 @@ All configs are in `src/config/`. Modify to swap models, prompts, or settings:
 | `scene_prompts.py`    | Image prompt generation                       |
 | `thumbnail_prompt.py` | Thumbnail prompt generation                   |
 | `yt_metadata.py`      | Title/description generation                  |
+
+**TTS Configuration:**
+
+Edit `src/config/tts.py` for text-to-speech settings:
+
+```python
+# Chunking strategy
+CHUNK_BY_SENTENCE = True      # True = split by sentences, False = split by character count
+MAX_CHUNK_CHARS = 400         # Maximum characters per chunk (when CHUNK_BY_SENTENCE=False)
+SILENCE_PADDING_MS = 300      # Silence duration between audio chunks (milliseconds)
+```
 
 **Adding a new speaker:**
 

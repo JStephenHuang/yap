@@ -79,6 +79,10 @@ def narrate_story(state: CreepypastaState) -> Command:
         text=script,
         voice_id=speaker.name,
         output_path=output_path,
+        chunk_by_sentence=tts_config.CHUNK_BY_SENTENCE,
+        max_chunk_sentences=tts_config.MAX_CHUNK_SENTENCES,
+        max_chunk_chars=tts_config.MAX_CHUNK_CHARS,
+        silence_ms=tts_config.SILENCE_PADDING_MS,
     )
 
     logger.info(f"Audio saved to: {output_path}")

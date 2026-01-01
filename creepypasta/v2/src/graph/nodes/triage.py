@@ -23,6 +23,8 @@ def triage(state: CreepypastaState) -> Command:
     If approved, proceeds to refine_story.
     If rejected, loops back to triage for next post.
     """
+    repo = RedditThreadRepositorySingleton()
+
     if state["reddit_thread"]:
         update = {
             "status": "triaged",
@@ -32,9 +34,9 @@ def triage(state: CreepypastaState) -> Command:
             },
         }
         save_metadata(state["run_dir"], {**state, **update})
+        repo.update_status(state["reddit_thread"]["thread_id"], "approved")
         return Command(update=update, goto="refine_story")
 
-    repo = RedditThreadRepositorySingleton()
     post = repo.get_single_raw()
 
     if not post:

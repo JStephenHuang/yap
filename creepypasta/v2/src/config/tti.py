@@ -22,7 +22,7 @@ class TTIConfig:
     GUIDANCE_SCALE: float = 7.0
 
     # Default negative prompt
-    NEGATIVE_PROMPT: str = "text, watermark, logo, blurry, low quality, cartoon, anime"
+    NEGATIVE_PROMPT: str = "text, watermark, logo, blurry, low quality, cartoon, anime, nsfw, 18+"
 
 
 tti_config = TTIConfig()

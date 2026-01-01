@@ -53,9 +53,8 @@ def create_video(state: CreepypastaState) -> Command:
     # Resolve ambient path relative to project root
     ambient_path = None
     if video_config.AMBIENT_PATH:
-        ambient_path = Path(video_config.AMBIENT_PATH)
+        ambient_path = video_config.AMBIENT_PATH
         if not ambient_path.is_absolute():
-            # Make relative to project root (v2/)
             ambient_path = Path(__file__).parents[3] / ambient_path
 
     ffmpeg_create_video(

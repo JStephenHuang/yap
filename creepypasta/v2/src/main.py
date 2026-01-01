@@ -238,6 +238,61 @@ def rerun_from_step(checkpoint_thread_id: str, step: str) -> dict:
     return final_state
 
 
+def restart_pipeline(checkpoint_thread_id: str) -> dict:
+    """Completely restart a pipeline from the beginning, clearing all generated assets."""
+    logger.info(f"Restarting from scratch: {checkpoint_thread_id}")
+    app = compile_graph()
+    
+    config = {"configurable": {"thread_id": checkpoint_thread_id}}
+    current = app.get_state(config).values
+    
+    if not current.get("reddit_thread"):
+        console.print(f"[red]No run found with ID: {checkpoint_thread_id}[/red]")
+        return {}
+    
+    # Clear all generated assets but keep reddit_thread and run_dir
+    updates = {
+        "enable_reviews": False,
+        "triage": None,
+        "script": None,
+        "scene_prompts": None,
+        "thumbnail_prompt": None,
+        "yt_title": None,
+        "yt_description": None,
+        "audio": None,
+        "scene_images": None,
+        "thumbnail": None,
+        "video": None,
+        "youtube_link": None,
+        "current_feedback": None,
+        "status": "restarted",
+        "message": None,
+    }
+    
+    # Find checkpoint after triage node (to restart from refine_story)
+    checkpoint_config = find_checkpoint_before_node(app, checkpoint_thread_id, "refine_story")
+    if not checkpoint_config:
+        # No checkpoint before refine_story, use current config
+        checkpoint_config = config
+    
+    update_state_at_checkpoint(app, checkpoint_config, updates)
+    
+    console.print(f"[green]Restarting pipeline from the beginning...[/green]\n")
+    app.invoke(None, config=checkpoint_config)
+    
+    final_state = review_loop(app, {"configurable": {"thread_id": checkpoint_thread_id}})
+    
+    status = final_state.get("status", "unknown")
+    summary = f"[bold]Status:[/bold] [{'green' if status in ['completed', 'uploaded'] else 'yellow'}]{status}[/]"
+    if final_state.get("video"):
+        summary += f"\n[bold]Video:[/bold] {final_state['video']}"
+    if final_state.get("youtube_link"):
+        summary += f"\n[bold]YouTube:[/bold] {final_state['youtube_link']}"
+    console.print(Panel(summary, title="[bold green]Complete[/bold green]", border_style="green"))
+
+    return final_state
+
+
 def show_status():
     """Show queue statistics."""
     repo = RedditThreadRepositorySingleton()
@@ -286,10 +341,12 @@ def main():
         epilog="""
 Examples:
   uv run python src/main.py run              # Process next from db
+  uv run python src/main.py run 1pwgmev      # Process specific thread
   uv run python src/main.py run --no-review  # Skip reviews
   uv run python src/main.py test             # Use test data
   uv run python src/main.py resume abc123    # Resume checkpoint
   uv run python src/main.py rerun abc123 narrate  # Re-run from step
+  uv run python src/main.py restart abc123   # Restart from beginning
   uv run python src/main.py status           # Show queue stats
 
 First time? Run: uv run scrape-reddit
@@ -299,6 +356,7 @@ First time? Run: uv run scrape-reddit
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     run_parser = subparsers.add_parser("run", help="Process next thread from db")
+    run_parser.add_argument("thread_id", nargs="?", help="Optional: specific thread_id to process")
     run_parser.add_argument("--no-review", action="store_true", help="Auto-approve all")
 
     test_parser = subparsers.add_parser("test", help="Run with test data (no db)")
@@ -312,20 +370,34 @@ First time? Run: uv run scrape-reddit
     rerun_parser.add_argument("step", choices=["narrate", "images", "thumbnail", "video", "upload"],
                               help="Step to re-run from")
 
+    restart_parser = subparsers.add_parser("restart", help="Completely restart from beginning")
+    restart_parser.add_argument("thread_id", help="Checkpoint thread_id")
+
     subparsers.add_parser("status", help="Show queue statistics")
 
     args = parser.parse_args()
 
     if args.command == "run":
         repo = RedditThreadRepositorySingleton()
-        if not repo.get_single_raw():
-            console.print("[yellow]Queue empty.[/yellow] Run: [bold]uv run scrape-reddit[/bold]")
-            sys.exit(1)
-
-        run_pipeline(
-            reddit_thread=None,
-            enable_reviews=not args.no_review,
-        )
+        
+        # If specific thread_id provided, fetch that thread
+        if args.thread_id:
+            thread = repo.get_by_id(args.thread_id)
+            if not thread:
+                console.print(f"[red]Thread not found:[/red] {args.thread_id}")
+                sys.exit(1)
+            if thread["status"] != "scraped":
+                console.print(f"[yellow]Warning:[/yellow] Thread status is '{thread['status']}', not 'scraped'")
+            
+            run_pipeline(
+                reddit_thread=thread,
+                enable_reviews=not args.no_review,
+            )
+        else:
+            run_pipeline(
+                reddit_thread=None,
+                enable_reviews=not args.no_review,
+            )
 
     elif args.command == "test":
         test_thread = {
@@ -364,6 +436,9 @@ Update 2: I think whatever is behind that door... knows I'm listening.""",
 
     elif args.command == "rerun":
         rerun_from_step(args.thread_id, args.step)
+
+    elif args.command == "restart":
+        restart_pipeline(args.thread_id)
 
     elif args.command == "status":
         show_status()

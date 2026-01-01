@@ -32,7 +32,7 @@ class VideoConfig:
 
     # Audio levels
     NARRATION_VOLUME: float = 2.0  # Boost narration (1.0 = original)
-    AMBIENT_VOLUME: float = 0.15   # Background ambient level
+    AMBIENT_VOLUME: float = 0.5   # Background ambient level
     AMBIENT_PATH: Path | None = Path("assets/ambient/hanging_garden.mp3")  # Set to None to disable
 
 

@@ -18,13 +18,7 @@ ABBREVIATIONS = {
 }
 
 
-def split_into_sentences(text: str) -> list[str]:
-    """
-    Split text into sentences, preserving sentence-ending punctuation.
-
-    Handles abbreviations (Mr., Dr., etc.) to avoid false splits.
-    """
-    # Normalize whitespace
+def split_into_sentences(text: str, sentences_per_chunk: int = 1) -> list[str]:
     text = " ".join(text.split())
 
     sentences = []
@@ -34,15 +28,8 @@ def split_into_sentences(text: str) -> list[str]:
     for i, word in enumerate(words):
         current.append(word)
 
-        # Check if word ends with sentence-ending punctuation
         if word and word[-1] in ".!?":
-            # Check if it's an abbreviation (word without punctuation, lowercase)
             word_base = word.rstrip(".!?,;:").lower()
-
-            # It's a sentence end if:
-            # - Ends with ! or ?
-            # - Ends with . but is NOT an abbreviation
-            # - Is the last word
             is_abbrev = word[-1] == "." and word_base in ABBREVIATIONS
             is_last = i == len(words) - 1
 
@@ -50,33 +37,22 @@ def split_into_sentences(text: str) -> list[str]:
                 sentences.append(" ".join(current))
                 current = []
 
-    # Don't forget remaining words
     if current:
         sentences.append(" ".join(current))
 
-    return [s.strip() for s in sentences if s.strip()]
+    # Group sentences into chunks
+    chunks = []
+    for i in range(0, len(sentences), sentences_per_chunk):
+        chunk = " ".join(sentences[i:i + sentences_per_chunk])
+        chunks.append(chunk.strip())
 
+    return chunks
 
 def chunk_text(
     text: str,
-    max_chars: int = DEFAULT_MAX_CHUNK_CHARS,
+    max_chars: int,
 ) -> list[str]:
-    """
-    Split text into chunks that fit within max_chars.
-
-    Splits on sentence boundaries first, then groups sentences
-    into chunks. Single sentences exceeding max_chars become
-    their own chunk (no mid-sentence splits).
-
-    Args:
-        text: Text to chunk
-        max_chars: Maximum characters per chunk
-
-    Returns:
-        List of text chunks
-    """
     sentences = split_into_sentences(text)
-    logger.debug(f"Split text into {len(sentences)} sentences")
 
     chunks = []
     current_chunk = []
@@ -85,47 +61,41 @@ def chunk_text(
     for sentence in sentences:
         sentence_len = len(sentence)
 
-        # If single sentence exceeds max, it becomes its own chunk (never split mid-sentence)
         if sentence_len > max_chars:
             if current_chunk:
                 chunks.append(" ".join(current_chunk))
                 current_chunk = []
                 current_len = 0
             chunks.append(sentence)
-            logger.debug(f"Long sentence ({sentence_len} chars) as own chunk: {sentence[:50]}...")
             continue
 
-        # Check if adding this sentence exceeds the limit
-        new_len = current_len + sentence_len + (1 if current_chunk else 0)
-        if new_len > max_chars and current_chunk:
+        projected_len = current_len + sentence_len + (1 if current_chunk else 0)
+
+        if current_chunk and projected_len > max_chars:
             chunks.append(" ".join(current_chunk))
             current_chunk = [sentence]
             current_len = sentence_len
         else:
             current_chunk.append(sentence)
-            current_len = new_len
+            current_len = projected_len
 
     if current_chunk:
         chunks.append(" ".join(current_chunk))
 
-    logger.info(f"Chunked text into {len(chunks)} chunks (max {max_chars} chars each)")
     return chunks
 
-
-def crossfade_concat(
+def simple_concat(
     wavs: list[np.ndarray],
     sample_rate: int = 24000,
-    crossfade_ms: int = 50,
-    pad_end_ms: int = 100,
+    silence_ms: int = 300,
 ) -> np.ndarray:
     """
-    Concatenate audio arrays with crossfade to smooth transitions.
+    Concatenate audio arrays with silence padding between chunks.
 
     Args:
         wavs: List of audio arrays to concatenate
         sample_rate: Audio sample rate (default 24kHz)
-        crossfade_ms: Crossfade duration in milliseconds (default 50ms)
-        pad_end_ms: Silence padding at end of each chunk before crossfade (default 100ms)
+        silence_ms: Silence duration between chunks in milliseconds (default 300ms)
 
     Returns:
         Concatenated audio array
@@ -135,38 +105,40 @@ def crossfade_concat(
     if len(wavs) == 1:
         return wavs[0]
 
-    crossfade_samples = int(sample_rate * crossfade_ms / 1000)
-    pad_samples = int(sample_rate * pad_end_ms / 1000)
+    silence_samples = int(sample_rate * silence_ms / 1000)
+    silence = np.zeros(silence_samples, dtype=np.float32)
 
-    # Add silence padding to end of each chunk (except last) to protect word endings
-    padded_wavs = []
+    # Concatenate with silence between chunks
+    result = []
     for i, wav in enumerate(wavs):
-        if i < len(wavs) - 1:
-            # Add silence padding before crossfade region
-            padded = np.concatenate([wav, np.zeros(pad_samples, dtype=wav.dtype)])
-            padded_wavs.append(padded)
-        else:
-            padded_wavs.append(wav)
+        result.append(wav)
+        if i < len(wavs) - 1:  # Don't add silence after last chunk
+            result.append(silence)
 
-    # Build output with crossfades
-    result = padded_wavs[0].copy()
+    return np.concatenate(result)
 
-    for wav in padded_wavs[1:]:
-        if len(result) < crossfade_samples or len(wav) < crossfade_samples:
-            # Not enough samples for crossfade, just concatenate
-            result = np.concatenate([result, wav])
-        else:
-            # Create crossfade
-            fade_out = np.linspace(1, 0, crossfade_samples)
-            fade_in = np.linspace(0, 1, crossfade_samples)
+def concat_crossfade(
+    wavs: list[np.ndarray],
+    sample_rate: int = 24000,
+    crossfade_ms: int = 15,
+    silence_ms: int = 200,
+) -> np.ndarray:
+    if not wavs:
+        return np.array([], dtype=np.float32)
 
-            # Apply fades to overlapping region
-            result[-crossfade_samples:] *= fade_out
-            wav_copy = wav.copy()
-            wav_copy[:crossfade_samples] *= fade_in
+    crossfade = int(sample_rate * crossfade_ms / 1000)
+    silence = np.zeros(int(sample_rate * silence_ms / 1000), dtype=np.float32)
 
-            # Overlap-add
-            result[-crossfade_samples:] += wav_copy[:crossfade_samples]
-            result = np.concatenate([result, wav_copy[crossfade_samples:]])
+    output = wavs[0].astype(np.float32)
 
-    return result
+    for wav in wavs[1:]:
+        wav = wav.astype(np.float32)
+
+        cf = min(crossfade, len(output), len(wav))
+        fade_out = np.linspace(1.0, 0.0, cf)
+        fade_in = np.linspace(0.0, 1.0, cf)
+
+        output[-cf:] = output[-cf:] * fade_out + wav[:cf] * fade_in
+        output = np.concatenate([output[:-cf], output[-cf:], wav[cf:], silence])
+
+    return output

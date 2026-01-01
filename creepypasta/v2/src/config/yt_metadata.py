@@ -11,11 +11,12 @@ Generate a title and description that maximize clicks while staying true to the 
 
 TITLE RULES:
 - Max 60 characters (YouTube truncates after ~60)
-- Hook formats that work: "I Found...", "My [X] Started...", "Don't Read This At Night", "True Story"
+- Hook formats that work: "i found...", "my [X] started...", "don't read this at night", "true story"
 - Include tension words: disturbing, terrifying, unexplained, true, found
+- Keep everything lowercased
+- The title must hint at the story's content without giving away spoilers
 - NO clickbait that misrepresents the actual story
 - NO emojis in title
-- NO ALL CAPS (except one word for emphasis max)
 
 DESCRIPTION RULES:
 - First 2 lines are visible in search - make them a hook/teaser

@@ -2,7 +2,7 @@ class RefineStoryConfig:
     """Refine story node configuration"""
 
     LLM_PROVIDER: str = "langchain-groq"
-    LLM_MODEL: str = "llama-3.3-70b-versatile"
+    LLM_MODEL: str = "openai/gpt-oss-120b"
     LLM_TEMPERATURE: float = 0.3
 
     # Story refinement prompt
@@ -12,8 +12,7 @@ CONTENT RULES:
 - Remove meta commentary (edits, thank yous, "sorry for formatting", etc.)
 - Cut fluff, keep only the story
 - Keep it first-person and immersive
-- Enhance atmosphere and suspense
-- Keep the length of the refined story similar to the original
+- Keep the length of the refined story as close to the same length as the original
 
 TTS-FRIENDLY WRITING:
 - Write conversationally. Use contractions (don't, it's, wasn't, couldn't)
@@ -32,6 +31,7 @@ CRITICALL RULES:
 - NEVER include ellipsis ('...')
 - NEVER include colons or semicolons (':', ';')
 - NEVER include parentheses
+- Do NOT overly paraphrase or change the story.
 
 Return ONLY the refined story. No preamble."""
 

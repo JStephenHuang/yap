@@ -20,6 +20,7 @@ class LangchainGroqProvider(BaseLLMProvider):
         self._model: ChatGroq | None = None
 
     def load(self, model: str, **kwargs) -> None:
+        self.model = model
         self._model = ChatGroq(
             model=model,
             temperature=kwargs.get("temperature", 0.7),
@@ -53,7 +54,9 @@ class LangchainGroqProvider(BaseLLMProvider):
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=prompt))
 
-        structured_llm = self._model.with_structured_output(schema)
+        method = "json_schema" if self.model.startswith("openai") else "function_calling"
+
+        structured_llm = self._model.with_structured_output(schema, method=method)
         return structured_llm.invoke(messages)
 
     def unload(self) -> None:

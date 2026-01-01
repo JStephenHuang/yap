@@ -2,7 +2,7 @@ class ScenePromptsConfig:
     """Scene prompts generation configuration"""
 
     LLM_PROVIDER: str = "langchain-groq"
-    LLM_MODEL: str = "llama-3.3-70b-versatile"
+    LLM_MODEL: str = "openai/gpt-oss-120b"
     LLM_TEMPERATURE: float = 0.5
 
     # Fixed number of scenes
@@ -18,10 +18,12 @@ Create {num_scenes} image generation prompts for key story moments.
 CRITICAL RULES:
 - Prompts must follow story CHRONOLOGICALLY (e.g. scene 1: beginning → scene 2: middle → scene 3: climax)
 - Each captures a KEY VISUAL MOMENT viewers see while listening
-- Be specific: subject, setting, lighting, mood, camera angle
+- Keep it short and concise (1 sentence)
+- Avoid too much descrption and focus on the specific visual of the scene
 - NO text/words/letters in images
 - NO clear faces (use shadows, back angles, silhouettes - avoids AI artifacts)
 - Each prompt is standalone (image generator has no cross-prompt context)
+- Keep the images SAFE for work (no nudity, gore, or overly graphic content, no graphic blood)
 
 STYLE: {visual_style}
 """

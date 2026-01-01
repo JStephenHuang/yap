@@ -12,8 +12,7 @@ import re
 import perth
 from neucodec import NeuCodec, DistillNeuCodec
 from phonemizer.backend import EspeakBackend
-from transformers import AutoTokenizer, AutoModelForCausalLM, TextIteratorStreamer
-from threading import Thread
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 def _linear_overlap_add(frames: list[np.ndarray], stride: int) -> np.ndarray:
