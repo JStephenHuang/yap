@@ -98,9 +98,9 @@ def create_video(
     acodec: str,
     pix_fmt: str,
     preset: str = "p4",
-    narration_volume: float = 2.0,
+    narration_volume: float = 4.0,
     ambient_path: Path | None = None,
-    ambient_volume: float = 0.15,
+    ambient_volume: float = 1.5,
 ) -> Path:
     """
     Create video from images + audio.

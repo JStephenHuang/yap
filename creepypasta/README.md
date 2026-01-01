@@ -1,108 +1,111 @@
 # YAP: Creepypastas
 
-## v1
+Automatically generates full narration-style videos end-to-end using AI models (LLM, TTS, TTI). Pulls content from Reddit, writes scripts, generates speech, creates visuals, and assembles the final output with no manual editing.
 
-Here is a result video from the first version of YAP:
+## Versions
 
-https://youtu.be/l-CNBpAGitw
+### v1
 
-Everything was generated using transformer and diffusion models (LLM, TTS, TTI).
+First version proof of concept. Result video: https://youtu.be/l-CNBpAGitw
 
-**What it does:** Automatically generates full narration-style videos end-to-end, pulling content, writing scripts, generating speech, creating visuals, and assembling the final output with no manual editing.
+**Technologies:**
+- [PRAW](https://praw.readthedocs.io/) - Reddit API
+- [CoquiTTS](https://github.com/coqui-ai/TTS) - Text-to-Speech
+- [Ollama](https://ollama.com/) - Local LLM
+- [HuggingFace](https://huggingface.co/) - Diffusion models
 
-Resources:
+**Status:** Functional but required running each pipeline node individually with CSV tracking.
 
-- [PRAW](https://praw.readthedocs.io/)
-- [CoquiTTS](https://github.com/coqui-ai/TTS)
-- [Ollama](https://ollama.com/)
-- [HuggingFace](https://huggingface.co/)
+### v2 (Current)
 
-Running the pipeline was a nightmare, you needed to run each node individually and all the data was tracked by a huge csv.
+A modular, graph-based pipeline with dependency injection for swapping models at any step.
 
-### Setup
+**What's new:**
+- [LangGraph](https://github.com/langchain-ai/langgraph) workflow orchestration with checkpointing
+- Modular architecture with injectable LLM, TTS, and TTI providers
+- Local editable packages (`llm`, `tts`, `tti`) for cross-project reuse
+- SQLite persistence for resumable pipelines
 
-to be filled
+## Setup (Windows)
 
-## v2
+### Prerequisites
 
-Version 2 is in development and will allow the user to easily **inject** new models into **different** steps.
+#### 1. NVIDIA CUDA Toolkit
 
-**What’s new:** A modular pipeline that lets users swap in their own LLMs, TTS engines, or image models, making the system flexible for different content workflows.
+Download and install from [developer.nvidia.com/cuda-downloads](https://developer.nvidia.com/cuda-downloads)
 
-Resources:
+**Check your CUDA version:**
+```powershell
+nvidia-smi
+nvcc --version
+```
 
-- ...v1.ressources
-- [LangGraph](https://github.com/langchain-ai/langgraph)
-- SQLite
+Look at the top-right corner of `nvidia-smi` output for "CUDA Version: X.X". This is the maximum CUDA version your driver supports.
 
-### Setup (Windows)
-
-#### 1. Dependencies
-
-**NVIDIA CUDA Toolkit:**
-Download and install from [developer.nvidia.com/cuda-downloads](https://developer.nvidia.com/cuda-downloads) (Windows → x86_64 → exe)
+#### 2. FFmpeg with NVENC
 
 ```powershell
-nvidia-smi          # verify driver
-nvcc --version      # verify CUDA
-```
-
-**FFmpeg with NVENC:**
-
-```
 scoop install ffmpeg
 ```
 
+Verify NVENC support:
 ```powershell
-ffmpeg -encoders | findstr nvenc   # should show hevc_nvenc, h264_nvenc
+ffmpeg -encoders | findstr nvenc
 ```
 
-**eSpeak NG (required for TTS phonemizer):**
+#### 3. eSpeak NG (for TTS phonemizer)
 
 ```powershell
 scoop install espeak.espeak-ng
 ```
 
-```
+Set environment variable (add to your PowerShell profile to make it permanent):
+```powershell
 $env:PHONEMIZER_ESPEAK_LIBRARY = "C:\Program Files\eSpeak NG\libespeak-ng.dll"
 ```
 
-**uv (Python package manager):**
+#### 4. uv (Python package manager)
 
 ```powershell
 scoop install uv
 ```
 
-Restart terminal after install.
+Restart your terminal after installation.
 
-#### 2. Clone & Install
+### Installation
 
 ```powershell
 git clone https://github.com/JStephenHuang/yap.git
 cd yap/creepypasta/v2
-uv sync
 ```
 
-PyTorch with CUDA 12.4 is installed automatically via `pyproject.toml` configuration.
+**Select your CUDA version:**
 
-Side note:
+Edit `pyproject.toml` and uncomment the PyTorch index you need (CUDA 12.6, CUDA 12.4)
 
-In the future, since I made packages, I will be add the flag to switch between CUDA and CPU and also the different models accessible given the torch version you will be able to choose in the future.
+Then install:
 
-This is to account for the fact that I made local python packages that might not be all compatible with each other.
+```powershell
+uv sync
+```
 
 **Verify CUDA is detected:**
 
 ```powershell
-uv run python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, Version: {torch.version.cuda}')"
-# Expected: CUDA: True, Version: 12.4
+uv run check-cuda
 ```
 
-If CUDA shows False, delete `uv.lock` and run `uv sync` again.
+Expected output (with CUDA):
+```
+CUDA Available: True
+CUDA Version: 12.6
+Device: NVIDIA GeForce GTX XXXX
+Device Count: n
+```
 
-#### 3. Environment Variables
+### Environment Variables
 
-Create `.env` in `creepypasta/v2/`:
+Edit `.env` in `v2/` and add your API keys:
 
 ```env
 # Reddit API
@@ -119,140 +122,92 @@ YOUTUBE_CLIENT_SECRET_FILE=youtube_client_secret.json
 YOUTUBE_CHANNEL_ID=your_channel_id
 ```
 
-For `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET`: https://www.geeksforgeeks.org/python/how-to-get-client_id-and-client_secret-for-python-reddit-api-registration/
+For Reddit API credentials: https://www.geeksforgeeks.org/python/how-to-get-client_id-and-client_secret-for-python-reddit-api-registration/
 
+Place your YouTube OAuth client secret JSON at `v2/youtube_client_secret.json`.
 
-Place your YouTube OAuth client secret JSON at `creepypasta/v2/youtube_client_secret.json`.
-
-#### 4. Run Pipeline
+## Usage
 
 ```powershell
-# Scrape stories first
+# Scrape Reddit stories
 uv run scrape-reddit
 
 # Check queue
 uv run python src/main.py status
 
-# Process next story (with reviews)
+# Process next story (with review prompts)
 uv run python src/main.py run
-
-# Process specific thread by ID
-uv run python src/main.py run <thread_id>
 
 # Process without reviews (auto-approve)
 uv run python src/main.py run --no-review
 
-# Test with sample data (no db)
-uv run python src/main.py test
-
 # Resume from checkpoint
 uv run python src/main.py resume <checkpoint_id>
-```
 
-### Pipeline Control Commands
+# Rerun from specific step
+uv run python src/main.py rerun <checkpoint_id> narrate  # or images, video, upload
 
-**Rerun from Specific Step**
-
-Re-run from a specific step (skips reviews, clears downstream state):
-
-```bash
-# Re-generate audio + images + video
-uv run python src/main.py rerun <checkpoint_id> narrate
-
-# Re-generate images + video only
-uv run python src/main.py rerun <checkpoint_id> images
-
-# Re-generate video only
-uv run python src/main.py rerun <checkpoint_id> video
-
-# Re-upload to YouTube
-uv run python src/main.py rerun <checkpoint_id> upload
-```
-
-**Restart from Beginning**
-
-Completely restart a run from `refine_story` node, clearing all generated assets:
-
-```bash
+# Restart from beginning
 uv run python src/main.py restart <checkpoint_id>
 ```
 
-This will:
-- Delete audio, video, images, and thumbnail files
-- Clear all generated prompts and metadata
-- Restart pipeline from story refinement
-- Keep the original Reddit thread data
+## Configuration
 
-### Configuration
+All configuration files are in `v2/src/config/`. Swap models and tweak settings:
 
-All configs are in `src/config/`. Modify to swap models, prompts, or settings:
-
-| File                  | What to tweak                                 |
+| File                  | What it controls                              |
 | --------------------- | --------------------------------------------- |
-| `tts.py`              | TTS provider, model, speaker voice reference, chunking settings  |
+| `tts.py`              | TTS provider, model, speaker voice, chunking  |
 | `tti.py`              | Image model, dimensions, inference steps      |
-| `video.py`            | Intro duration, crossfades, encoding settings |
-| `triage.py`           | LLM provider/model, triage prompt             |
-| `refine_story.py`     | Story refinement prompt                       |
+| `video.py`            | Intro duration, crossfades, encoding          |
+| `triage.py`           | LLM provider/model for story selection        |
+| `refine_story.py`     | Story refinement prompts                      |
 | `scene_prompts.py`    | Image prompt generation                       |
 | `thumbnail_prompt.py` | Thumbnail prompt generation                   |
-| `yt_metadata.py`      | Title/description generation                  |
+| `yt_metadata.py`      | YouTube title/description generation          |
 
-**TTS Configuration:**
+## Output
 
-Edit `src/config/tts.py` for text-to-speech settings:
-
-```python
-# Chunking strategy
-CHUNK_BY_SENTENCE = True      # True = split by sentences, False = split by character count
-MAX_CHUNK_CHARS = 400         # Maximum characters per chunk (when CHUNK_BY_SENTENCE=False)
-SILENCE_PADDING_MS = 300      # Silence duration between audio chunks (milliseconds)
-```
-
-**Adding a new speaker:**
-
-Edit `src/config/tts.py`:
-
-```python
-SPEAKERS: dict[str, Speaker] = {
-    "ghoul": Speaker(
-        name="ghoul",
-        audio=Path("assets/narrators/ghoul.mp3"),
-        transcript="The exact words spoken in the audio file.",
-    ),
-    "myspeaker": Speaker(
-        name="myspeaker",
-        audio=Path("assets/narrators/myspeaker.wav"),
-        transcript="What myspeaker says in the reference audio.",
-    ),
-}
-DEFAULT_SPEAKER: str = "myspeaker"
-```
-
-### Output
-
-Each run creates a folder in `runs/{checkpoint_id}/`:
+Each run creates a folder in `v2/runs/{checkpoint_id}/`:
 
 ```
 runs/a1b2c3d4/
-├── metadata.json      # Pipeline state (checkpoint_thread_id for resume)
-├── narration.wav      # TTS audio
-├── scene_0.png        # Generated images
-├── scene_1.png
-├── scene_2.png
+├── metadata.json      # Pipeline state, use checkpoint_thread_id to resume
+├── narration.wav      # Generated TTS audio
+├── scene_*.png        # Generated images
 ├── thumbnail.png      # YouTube thumbnail
 └── video.mp4          # Final video
 ```
 
-**metadata.json** contains:
+Databases are stored in `v2/db/`:
+- `threads.sqlite` - Scraped Reddit threads
+- `checkpoints.sqlite` - LangGraph checkpoints
 
-- `checkpoint_thread_id` - Use this to resume if pipeline fails
-- `script` - Refined story text
-- `scene_prompts` - Image generation prompts
-- `yt_title`, `yt_description` - YouTube metadata
-- `status` - Current pipeline state
+## Architecture
 
-**Databases** in `db/`:
+The project uses a modular monorepo structure:
 
-- `threads.sqlite` - Scraped reddit threads
-- `checkpoints.sqlite` - LangGraph checkpoints for resume
+```
+yap/
+├── llm/          # LLM provider abstraction (OpenAI, Groq, Ollama)
+├── tts/          # TTS provider abstraction (NeuTTS)
+├── tti/          # Image generation provider abstraction (Juggernaut)
+└── creepypasta/
+    └── v2/       # Main application using the providers
+```
+
+Each provider package is installed as an editable local package, allowing cross-project reuse while keeping provider implementations separate from the main application logic.
+
+## Troubleshooting
+
+### CUDA Not Detected
+
+If PyTorch can't find CUDA:
+
+1. Verify CUDA toolkit is in PATH: `nvcc --version`
+2. Check your driver supports CUDA 12.6: `nvidia-smi`
+3. Reinstall: `rm -r .venv; uv sync`
+
+### Module Not Found Errors
+
+The project uses local editable packages (`llm`, `tts`, `tti`). Make sure you're in the `v2/` directory and have run `uv sync`.
