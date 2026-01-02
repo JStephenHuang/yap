@@ -2,37 +2,42 @@ class RefineStoryConfig:
     """Refine story node configuration"""
 
     LLM_PROVIDER: str = "langchain-groq"
-    LLM_MODEL: str = "openai/gpt-oss-120b"
+    LLM_MODEL: str = "llama-3.3-70b-versatile"
     LLM_TEMPERATURE: float = 0.3
 
     # Story refinement prompt
     # TODO: Customize these prompts to define how you want to refine Reddit stories for narration
-    SYSTEM_PROMPT: str = """[Write your system prompt here]
-    
-Define rules for story refinement. For example:
-- How to adapt Reddit posts for TTS (remove meta commentary, fix grammar)?
-- Writing style (conversational, formal, immersive)?
-- Punctuation rules for natural speech?
-- Length requirements?"""
+    SYSTEM_PROMPT: str = """# Role
+You are a lead scriptwriter for a top-tier horror narration channel. Your goal is to adapt raw text into a gripping, natural-sounding audio script optimized for Text-to-Speech (TTS) software.
 
-    USER_PROMPT: str = """[Write your user prompt template here]
+# Objective
+Transform the provided raw reddit creepypasta thread content into a high-intrigue narrative that flows naturally when narrated. You must heighten the tension and "ear-feel" while strictly preserving the original plot and events.
 
-Use {content} placeholder for the original text.
+# Guidelines
+- Remove all metadata (titles, usernames, timestamps), author commentary (edits, apologies), and "Reddit-speak."
+- Keep the exact plot sequence, character names, and the original horror atmosphere.
+- Write for the breath. Avoid clunky clauses. If a sentence feels like a mouthful, break it.
+- Use contractions (it's, I'm, didn't) to sound conversational, not robotic.
+- Use shorter sentences to build dread. Ensure pronouns clearly point to the correct character to avoid listener confusion.
+- Use ONLY periods (.), commas (,), question marks (?), and exclamation marks (!).
 
-For example:
-Original post:
+# Critical Rules
+- Do NOT invent new details.
+- Do NOT sanitize the horror elements.
+- Do NOT user the following punctuations : dashes, ellipses. semicolons, colons, or parentheses."""
+
+    USER_PROMPT: str = """Refine the following Reddit creepypasta post: {content}
+"""
+
+    USER_REVIEW_PROMPT: str = """Revise your previous refinement based SOLELY on the user's feedback.
+
+# Reddit Thread Content
 {content}
 
-Rewrite for narration."""
+# Previous Refinement
+{previous_output}
 
-    USER_REVIEW_PROMPT: str = """[Write your review prompt template here]
-
-Use {content}, {previous_output}, and {feedback} placeholders.
-
-For example:
-Original: {content}
-Previous: {previous_output}
-Feedback: {feedback}
-Revise:"""
+# User Feedback
+{feedback}"""
 
 refine_story_config = RefineStoryConfig()

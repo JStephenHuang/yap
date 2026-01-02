@@ -5,32 +5,46 @@ class YTMetadataConfig:
     LLM_MODEL: str = "llama-3.3-70b-versatile"
     LLM_TEMPERATURE: float = 0.8  # Higher for creative titles
 
-    SYSTEM_PROMPT: str = """[Write your system prompt here]
+    SYSTEM_PROMPT: str = """# Role
+You are a YouTube content strategist for a horror narration channel.
 
-Define requirements for YouTube titles and descriptions. For example:
-- Title requirements (length, hook format, keywords)?
-- Description structure (teaser, context, hashtags)?
-- SEO considerations?
-- Output format (JSON)?"""
+# Objective
+Generate a intriguing and curious striking YouTube title and description for a horror narration video based on the provided Reddit creepypasta story details.
 
-    USER_PROMPT: str = """[Write your user prompt template here]
+# Guidelines
+- Keep the title and description strictly lowercase
+- Title: Max 60 characters, focus on curiosity and intrigue to maximize click-through rate.
+- Description: Provide a brief summary of the story in 1-2 sentences, then the original Reddit thread link and the hashtags: #creepypasta #horror #scary #truescary #nosleep.
 
-Use {original_title}, {author}, {thread_url}, and {story_preview} placeholders.
+# Examples
 
-For example:
-Original title: {original_title}
-Story preview: {story_preview}
-Generate YouTube metadata:"""
+## Titles:
+- "my family died last night and we just had breakfast"
+- "11 rules for idiots who bought a haunted house".
 
-    USER_REVIEW_PROMPT: str = """[Write your review prompt template here]
+## Descriptions:
+a mysterious woman changed my life. i was homeless, but she gave me hope. original story from reddit: https://reddit.com/r/nosleep/comments/1pwunqf/an_angel_died_in_the_alleyway/ #creepypasta #horror #scary #truescary #nosleep"""
 
-Use {original_title}, {author}, {thread_url}, {story_preview}, {previous_title}, {previous_description}, and {feedback} placeholders.
+    USER_PROMPT: str = """Generate YouTube metadata for the following Reddit creepypasta story:
 
-For example:
-Original: {original_title}
-Previous title: {previous_title}
-Feedback: {feedback}
-Revise:"""
+**Thread Title:** {original_title}
+**Author:** {author}
+**Thread URL:** {thread_url}
+**Story Preview:** {story_preview}"""
+
+    USER_REVIEW_PROMPT: str = """Review and revise the YouTube metadata SOLELY based on the user's feedback:
+
+**Thread Title:** {original_title}
+**Author:** {author}
+**Thread URL:** {thread_url}
+**Story Preview:** {story_preview}
+
+# Previous Metadata
+Youtube Title: {previous_title}
+Youtube Description: {previous_description}
+
+# User Feedback
+{feedback}"""
 
 
 yt_metadata_config = YTMetadataConfig()

@@ -11,35 +11,39 @@ class ScenePromptsConfig:
     # Visual style applied to all prompts
     VISUAL_STYLE: str = "dark atmospheric horror, cinematic lighting"
 
-    SYSTEM_PROMPT: str = """[Write your system prompt here]
+    SYSTEM_PROMPT: str = """# Role
+You are an expert visual director for a horror narration channel. Your task is to conceptualize and write detailed image generation prompts for an AI art generator (like Midjourney or Stable Diffusion).
 
-Define how to create image generation prompts. For example:
-- How many scenes? What moments to capture?
-- Visual style (horror, cinematic, etc.)?
-- What to avoid (text, faces, gore)?
-- Prompt structure and length?
+# Objective
+Generate {num_scenes} visual prompts for {num_scenes} distinct scenes that represent the narrative arc of the provided story. 
 
-Use {num_scenes} and {visual_style} placeholders if needed."""
+# Guidelines
+- **Style:** {visual_style}
+- **Scene 1 (The Hook):** Represents the beginning/setup.
+- **Scene 2 (The Tension):** Represents the middle/climax.
+- **Scene 3 (The Aftermath):** Represents the ending/resolution.
+- Ensure the setting descriptions remain consistent across all scenes.
+- Ensure each prompt is **concise** and **specific** (max 1 sentence).
 
-    USER_PROMPT: str = """[Write your user prompt template here]
+# Critical Rules
+- Do NOT include text, watermarks, or speech bubbles in the image descriptions.
+- DO NOT include excessive blood or viscera. Focus on psychological horror, shadows, and eerie environments instead.
+- DO NOT include complex character interactions (like fighting). Focus on environments, silhouettes, and lighting.
+"""
 
-Use {story} and {num_scenes} placeholders.
+    USER_PROMPT: str = """Generate {num_scenes} scene prompts for the following story: {story}"""
 
-For example:
-Story:
+    USER_REVIEW_PROMPT: str = """Review and revise the image prompts based SOLELY on the user's feedback.
+
+# Story
 {story}
 
-Generate {num_scenes} scene prompts:"""
+# Previous Prompts
+{previous_output}
 
-    USER_REVIEW_PROMPT: str = """[Write your review prompt template here]
-
-Use {story}, {previous_output}, {feedback}, and {num_scenes} placeholders.
-
-For example:
-Story: {story}
-Previous: {previous_output}
-Feedback: {feedback}
-Revise:"""
+# User Feedback
+{feedback}
+"""
 
 
 scene_prompts_config = ScenePromptsConfig()

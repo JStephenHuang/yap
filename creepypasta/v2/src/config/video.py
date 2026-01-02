@@ -11,6 +11,7 @@ class VideoConfig:
     # Timing
     INTRO_DURATION: float = 5.0
     CROSSFADE_DURATION: float = 2.0  # Used for intro fade-in and image crossfades
+    AUDIO_END_PADDING: float = 1.0  # Extra seconds before fade-out starts (prevents cutting words)
 
     # Video settings
     WIDTH: int = 1280

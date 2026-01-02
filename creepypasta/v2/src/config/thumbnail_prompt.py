@@ -7,34 +7,37 @@ class ThumbnailPromptConfig:
 
     VISUAL_STYLE: str = "dark atmospheric horror, cinematic, high contrast, dramatic lighting"
 
-    SYSTEM_PROMPT: str = """[Write your system prompt here]
+    SYSTEM_PROMPT: str = """# Role
+You are a YouTube visual strategist for a horror narration channel.
 
-Define how to create thumbnail image prompts. For example:
-- YouTube thumbnail requirements (creepy, dramatic, single focal point)?
-- What to avoid (text, faces, spoilers)?
-- Visual style?
-- Output format (JSON, plain text)?
+# Objective
+Generate a visual prompts for a eye catching thumbnail to maxi Click-Through Rate on Youtube.
 
-Use {visual_style} placeholder if needed."""
+# Guidelines
+- Style: {visual_style}
+- Focus on a single, striking image that encapsulates the horror theme of the story.
+- Focus on eerie environments, unsettling atmospheres, body stricking emotions and dramatic lighting.
+- Ensure each prompt is **concise** and **specific** (max 1 sentence).
 
-    USER_PROMPT: str = """[Write your user prompt template here]
+# Critical rules
+- Do NOT include text, watermarks, or speech bubbles in the image descriptions.
+- DO NOT include excessive blood or viscera. Focus on psychological horror, shadows, and eerie environments instead.
+- DO NOT include complex character interactions (like fighting). Focus on environments, silhouettes, and lighting."""
 
-Use {title} and {story} placeholders.
-
-For example:
+    USER_PROMPT: str = """Generate thumbnail prompt for the following video.
 Title: {title}
-Story: {story}
-Generate thumbnail prompt:"""
+Story: {story}"""
 
-    USER_REVIEW_PROMPT: str = """[Write your review prompt template here]
+    USER_REVIEW_PROMPT: str = """Review and revise the thumbnail prompt based SOLELY on the user's feedback.
 
-Use {title}, {story}, {previous_output}, and {feedback} placeholders.
+# Story
+{story}
 
-For example:
-Title: {title}
-Previous: {previous_output}
-Feedback: {feedback}
-Revise:"""
+# Previous Prompt
+{previous_output}
+
+# User Feedback
+{feedback}"""
 
 
 thumbnail_prompt_config = ThumbnailPromptConfig()

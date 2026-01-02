@@ -2,27 +2,31 @@ class TriageConfig():
     """Triage node configuration"""
 
     LLM_PROVIDER: str = "langchain-groq"
-    LLM_MODEL: str = "llama-3.3-70b-versatile"
+    LLM_MODEL: str = "openai/gpt-oss-120b"
     LLM_TEMPERATURE: float = 0.0
 
 
     # Triage evaluation prompt
     # TODO: Customize these prompts to define how you want to evaluate Reddit posts for video potential
-    SYSTEM_PROMPT: str = """[Write your system prompt here]
-    
-Define the criteria for evaluating stories. For example:
-- What makes a good story for your channel?
-- What metrics matter (hook, tension, structure, viral potential)?
-- How should the LLM evaluate and respond?"""
+    SYSTEM_PROMPT: str = """# Role
+You are a content strategist for a horror narration channel on YouTube.
 
-    USER_PROMPT: str = """[Write your user prompt template here]
+# Objective
+Evaluate Reddit creepypasta posts to determine their suitability for adaptation into engaging video narrations.
 
-Use these placeholders: {title}, {text}, {score}, {upvote_ratio}
+# Evaluation Rubric
+- **The Hook:** Does the first paragraph establish a unique, unsettling mystery or a "wrong" normalcy?
+- **Pacing:** Is there a gradual escalation of "The Uncanny" rather than a sudden jump-scare?
+- **Ear-Feel:** Is it written in a natural, first-person "confessional" style?.
+- **The Unresolved:** Does the ending leave a lingering, "could happen to you" dread rather than a neat explanation?
 
-For example:
-Title: {title}
-Story: {text}
-Evaluate this post."""
+# Criteria Rules
+- For each evaluation, provide your decision with a one-sentence reason."""
+
+    USER_PROMPT: str = """Evaluate the following Reddit creepypasta post:
+
+**Thread Title:** {title}
+**Full Story Text:** {text}"""
 
 
 # Import this directly: from config.triage import triage_config
