@@ -76,6 +76,7 @@ def create_video(state: CreepypastaState) -> Command:
         narration_volume=video_config.NARRATION_VOLUME,
         ambient_path=ambient_path,
         ambient_volume=video_config.AMBIENT_VOLUME,
+        audio_end_padding=video_config.AUDIO_END_PADDING,
     )
 
     update = {

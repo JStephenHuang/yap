@@ -64,6 +64,10 @@ Set environment variable (add to your PowerShell profile to make it permanent):
 $env:PHONEMIZER_ESPEAK_LIBRARY = "C:\Program Files\eSpeak NG\libespeak-ng.dll"
 ```
 
+If you ever run into the error: `RuntimeError: espeak not installed on your system`
+
+Run the command above.
+
 #### 4. uv (Python package manager)
 
 ```powershell

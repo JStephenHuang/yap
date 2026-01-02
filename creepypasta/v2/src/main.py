@@ -18,8 +18,6 @@ import sys
 import uuid
 
 from dotenv import load_dotenv
-load_dotenv()
-
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -33,12 +31,15 @@ from graph.builder import compile_graph
 from graph.state import CreepypastaState
 from config.base import BaseConfig
 from infrastructure.database import RedditThreadRepositorySingleton
+from infrastructure.espeak import configure_espeak
 
 from infrastructure.database.checkpointer import (
     find_checkpoint_before_node,
     update_state_at_checkpoint,
     get_checkpoint_history_summary,
 )
+
+load_dotenv()
 
 console = Console()
 
@@ -277,7 +278,7 @@ def restart_pipeline(checkpoint_thread_id: str) -> dict:
     
     update_state_at_checkpoint(app, checkpoint_config, updates)
     
-    console.print(f"[green]Restarting pipeline from the beginning...[/green]\n")
+    console.print("[green]Restarting pipeline from the beginning...[/green]\n")
     app.invoke(None, config=checkpoint_config)
     
     final_state = review_loop(app, {"configurable": {"thread_id": checkpoint_thread_id}})
@@ -335,6 +336,13 @@ def show_status():
 
 
 def main():
+    # Configure eSpeak NG before any TTS operations
+    try:
+        configure_espeak()
+    except RuntimeError as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        sys.exit(1)
+    
     parser = argparse.ArgumentParser(
         description="Creepypasta video generation pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,

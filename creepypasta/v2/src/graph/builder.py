@@ -2,7 +2,7 @@
 Graph builder - assembles the creepypasta generation pipeline.
 """
 
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph
 
 from graph.state import CreepypastaState
 from graph.nodes.triage import triage

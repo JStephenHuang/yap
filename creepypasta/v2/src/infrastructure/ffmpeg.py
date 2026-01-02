@@ -101,6 +101,7 @@ def create_video(
     narration_volume: float = 4.0,
     ambient_path: Path | None = None,
     ambient_volume: float = 1.5,
+    audio_end_padding: float = 1.0,
 ) -> Path:
     """
     Create video from images + audio.
@@ -146,17 +147,22 @@ def create_video(
     
     # Calculate total duration for fade out
     total_duration = intro_duration + (image_duration * len(image_paths))
-    fade_out_start = total_duration - crossfade_duration
+    
+    # Start audio fade after padding (prevents cutting off ending words)
+    audio_fade_start = total_duration - crossfade_duration + audio_end_padding
+    
+    # Video fade starts at end of video content
+    video_fade_start = total_duration - crossfade_duration
     
     # Apply final fade out to video
-    video_with_fade = video[0].filter("fade", type="out", start_time=fade_out_start, duration=crossfade_duration)
+    video_with_fade = video[0].filter("fade", type="out", start_time=video_fade_start, duration=crossfade_duration)
 
     # Narration: boost volume, delay until after intro fade completes, fade out at end
     narration_delay = intro_duration  # Start narration when intro ends
     narration = ffmpeg.input(str(audio_path))
     narration = narration.filter("volume", volume=narration_volume)
     narration = narration.filter("adelay", delays=f"{int(narration_delay * 1000)}|{int(narration_delay * 1000)}", all=False)
-    narration = narration.filter("afade", type="out", start_time=fade_out_start, duration=crossfade_duration)
+    narration = narration.filter("afade", type="out", start_time=audio_fade_start, duration=crossfade_duration)
 
     # Mix with ambient if provided
     if ambient_path and ambient_path.exists():
@@ -165,7 +171,7 @@ def create_video(
         ambient = ffmpeg.input(str(ambient_path), stream_loop=-1, t=total_duration)
         ambient = ambient.filter("volume", volume=ambient_volume)
         ambient = ambient.filter("afade", type="in", start_time=0, duration=2.0)
-        ambient = ambient.filter("afade", type="out", start_time=fade_out_start, duration=crossfade_duration)
+        ambient = ambient.filter("afade", type="out", start_time=audio_fade_start, duration=crossfade_duration)
         
         # Mix narration + ambient
         audio_mixed = ffmpeg.filter([narration, ambient], "amix", inputs=2, duration="longest")
