@@ -61,6 +61,7 @@ def chunk_text(
     for sentence in sentences:
         sentence_len = len(sentence)
 
+        # if single sentence exceeds max, put it in its own chunk
         if sentence_len > max_chars:
             if current_chunk:
                 chunks.append(" ".join(current_chunk))
@@ -69,7 +70,9 @@ def chunk_text(
             chunks.append(sentence)
             continue
 
+        # current len + sentence len + space
         projected_len = current_len + sentence_len + (1 if current_chunk else 0)
+
 
         if current_chunk and projected_len > max_chars:
             chunks.append(" ".join(current_chunk))
@@ -83,62 +86,3 @@ def chunk_text(
         chunks.append(" ".join(current_chunk))
 
     return chunks
-
-def simple_concat(
-    wavs: list[np.ndarray],
-    sample_rate: int = 24000,
-    silence_ms: int = 300,
-) -> np.ndarray:
-    """
-    Concatenate audio arrays with silence padding between chunks.
-
-    Args:
-        wavs: List of audio arrays to concatenate
-        sample_rate: Audio sample rate (default 24kHz)
-        silence_ms: Silence duration between chunks in milliseconds (default 300ms)
-
-    Returns:
-        Concatenated audio array
-    """
-    if len(wavs) == 0:
-        return np.array([], dtype=np.float32)
-    if len(wavs) == 1:
-        return wavs[0]
-
-    silence_samples = int(sample_rate * silence_ms / 1000)
-    silence = np.zeros(silence_samples, dtype=np.float32)
-
-    # Concatenate with silence between chunks
-    result = []
-    for i, wav in enumerate(wavs):
-        result.append(wav)
-        if i < len(wavs) - 1:  # Don't add silence after last chunk
-            result.append(silence)
-
-    return np.concatenate(result)
-
-def concat_crossfade(
-    wavs: list[np.ndarray],
-    sample_rate: int = 24000,
-    crossfade_ms: int = 15,
-    silence_ms: int = 200,
-) -> np.ndarray:
-    if not wavs:
-        return np.array([], dtype=np.float32)
-
-    crossfade = int(sample_rate * crossfade_ms / 1000)
-    silence = np.zeros(int(sample_rate * silence_ms / 1000), dtype=np.float32)
-
-    output = wavs[0].astype(np.float32)
-
-    for wav in wavs[1:]:
-        wav = wav.astype(np.float32)
-
-        cf = min(crossfade, len(output), len(wav))
-        fade_out = np.linspace(1.0, 0.0, cf)
-        fade_in = np.linspace(0.0, 1.0, cf)
-
-        output[-cf:] = output[-cf:] * fade_out + wav[:cf] * fade_in
-        output = np.concatenate([output[:-cf], output[-cf:], wav[cf:], silence])
-
-    return output

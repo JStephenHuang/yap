@@ -18,6 +18,9 @@ import sys
 import uuid
 
 from dotenv import load_dotenv
+
+# Configure eSpeak NG before any imports that use TTS
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -40,6 +43,7 @@ from infrastructure.database.checkpointer import (
 )
 
 load_dotenv()
+configure_espeak()
 
 console = Console()
 
@@ -336,13 +340,6 @@ def show_status():
 
 
 def main():
-    # Configure eSpeak NG before any TTS operations
-    try:
-        configure_espeak()
-    except RuntimeError as e:
-        console.print(f"[bold red]Error:[/bold red] {e}")
-        sys.exit(1)
-    
     parser = argparse.ArgumentParser(
         description="Creepypasta video generation pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,

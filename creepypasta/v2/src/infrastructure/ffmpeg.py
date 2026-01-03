@@ -146,10 +146,10 @@ def create_video(
     video = ffmpeg.concat(intro, *image_streams, v=1, a=0).node
     
     # Calculate total duration for fade out
-    total_duration = intro_duration + (image_duration * len(image_paths))
+    total_duration = intro_duration + (image_duration * len(image_paths)) + audio_end_padding
     
     # Start audio fade after padding (prevents cutting off ending words)
-    audio_fade_start = total_duration - crossfade_duration + audio_end_padding
+    audio_fade_start = total_duration - crossfade_duration
     
     # Video fade starts at end of video content
     video_fade_start = total_duration - crossfade_duration

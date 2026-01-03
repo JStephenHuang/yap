@@ -9,7 +9,7 @@ import numpy as np
 import soundfile as sf
 
 from tts.providers.base import BaseTTSProvider
-from tts.utils import chunk_text, split_into_sentences, simple_concat
+from tts.utils import chunk_text, split_into_sentences
 from tts.vendor.neutts import NeuTTSAir
 
 
@@ -112,26 +112,34 @@ class NeuTTSProvider(BaseTTSProvider):
         else:
             chunks = chunk_text(text, max_chunk_chars)
 
-        # Generate audio for each chunk
-        wavs = []
-        for chunk in chunks:
-            wav = self._model.infer(chunk, ref_codes, ref_text)
-            wavs.append(wav)
+        # Calculate silence padding
+        silence_samples = int(24000 * silence_ms / 1000)
+        silence = np.zeros(silence_samples, dtype=np.float32)
 
-        # Concatenate with silence padding (24kHz sample rate)
-        final_wav = simple_concat(wavs, sample_rate=24000, silence_ms=silence_ms)
-
-        # Convert to WAV bytes
-        buffer = io.BytesIO()
-        sf.write(buffer, final_wav, 24000, format="WAV")
-        audio_bytes = buffer.getvalue()
-
-        # Optionally save to file
-        if output_path:
-            output_path = Path(output_path)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            sf.write(str(output_path), final_wav, 24000)
-
+        # Write chunks directly to file as we generate them
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Open file in write mode and write chunks as we generate them
+        with sf.SoundFile(
+            str(output_path),
+            mode='w',
+            samplerate=24000,
+            channels=1,
+            format='WAV',
+            subtype='PCM_16'
+        ) as f:
+            for i, chunk in enumerate(chunks):
+                wav = self._model.infer(chunk, ref_codes, ref_text)
+                f.write(wav)
+                # Add silence between chunks (but not after the last one)
+                if i < len(chunks) - 1:
+                    f.write(silence)
+        
+        # Read back the file to return as bytes
+        with open(output_path, 'rb') as f:
+            audio_bytes = f.read()
+        
         return audio_bytes
 
     def unload(self) -> None:

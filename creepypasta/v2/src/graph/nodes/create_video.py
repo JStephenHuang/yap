@@ -25,7 +25,6 @@ def create_video(state: CreepypastaState) -> Command:
     """
     scene_images = state["scene_images"]
     audio = state["audio"]
-    thread = state["reddit_thread"]
     run_dir = Path(state["run_dir"])
 
     if not scene_images:
@@ -61,7 +60,7 @@ def create_video(state: CreepypastaState) -> Command:
         image_paths=[Path(p) for p in scene_images],
         audio_path=Path(audio),
         output_path=output_path,
-        title=thread["title"],
+        title=state["yt_title"],
         intro_duration=video_config.INTRO_DURATION,
         crossfade_duration=video_config.CROSSFADE_DURATION,
         width=video_config.WIDTH,
