@@ -2,7 +2,7 @@ class RefineStoryConfig:
     """Refine story node configuration"""
 
     LLM_PROVIDER: str = "langchain-groq"
-    LLM_MODEL: str = "llama-3.3-70b-versatile"
+    LLM_MODEL: str = "openai/gpt-oss-120b"
     LLM_TEMPERATURE: float = 0.3
 
     # Story refinement prompt

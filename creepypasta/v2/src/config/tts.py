@@ -28,7 +28,7 @@ class TTSConfig:
     # Chunking settings
     CHUNK_BY_SENTENCE: bool = True  # If True, chunks by sentence; if False, chunks by max chars
     MAX_CHUNK_SENTENCES: int = 2     # Max sentences per chunk (only used if CHUNK_BY_SENTENCE=True)
-    MAX_CHUNK_CHARS: int = 400  # Max chars per chunk (only used if CHUNK_BY_SENTENCE=False)
+    MAX_CHUNK_CHARS: int = 250  # Max chars per chunk (only used if CHUNK_BY_SENTENCE=False)
 
     # Concatenation settings
     SILENCE_PADDING_MS: int = 300  # Silence between chunks in milliseconds
