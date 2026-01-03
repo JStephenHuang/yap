@@ -21,6 +21,12 @@ Transform the provided raw reddit creepypasta thread content into a high-intrigu
 - Use shorter sentences to build dread. Ensure pronouns clearly point to the correct character to avoid listener confusion.
 - Use ONLY periods (.), commas (,), question marks (?), and exclamation marks (!).
 
+## Narration
+- Keep the dialogue as-is, but insert the right punctuations and format for clear and natural narration.
+- For example:
+    - Original: She said: "I don't know if we should go in there"
+    - Refined: She said, I don't know if we should go in there.
+
 # Critical Rules
 - Do NOT invent new details.
 - Do NOT sanitize the horror elements.

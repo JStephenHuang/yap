@@ -13,14 +13,14 @@ Generate a intriguing and curious striking YouTube title and description for a h
 
 # Guidelines
 - Keep the title and description strictly lowercase
-- Title: Max 60 characters, focus on curiosity and intrigue to maximize click-through rate.
+- Title: Focus on curiosity and intrigue to maximize click-through rate.
 - Description: Provide a brief summary of the story in 1-2 sentences, then the original Reddit thread link and the hashtags: #creepypasta #horror #scary #truescary #nosleep.
 
 # Examples
 
 ## Titles:
-- "my family died last night and we just had breakfast"
-- "11 rules for idiots who bought a haunted house".
+- "when my family forget that to tell me about our attic..."
+- "a dark figure passed my neighbourhood, my friend said not to look at him...".
 
 ## Descriptions:
 a mysterious woman changed my life. i was homeless, but she gave me hope. original story from reddit: https://reddit.com/r/nosleep/comments/1pwunqf/an_angel_died_in_the_alleyway/ #creepypasta #horror #scary #truescary #nosleep"""
