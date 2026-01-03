@@ -34,7 +34,6 @@ from graph.builder import compile_graph
 from graph.state import CreepypastaState
 from config.base import BaseConfig
 from infrastructure.database import RedditThreadRepositorySingleton
-from infrastructure.espeak import configure_espeak
 
 from infrastructure.database.checkpointer import (
     find_checkpoint_before_node,
@@ -43,7 +42,6 @@ from infrastructure.database.checkpointer import (
 )
 
 load_dotenv()
-configure_espeak()
 
 console = Console()
 
@@ -243,8 +241,8 @@ def rerun_from_step(checkpoint_thread_id: str, step: str) -> dict:
     return final_state
 
 
-def restart_pipeline(checkpoint_thread_id: str) -> dict:
-    """Completely restart a pipeline from the beginning, clearing all generated assets."""
+def restart_pipeline(checkpoint_thread_id: str, enable_reviews: bool = True) -> dict:
+    """Completely restart a pipeline from the beginning with a new checkpoint thread."""
     logger.info(f"Restarting from scratch: {checkpoint_thread_id}")
     app = compile_graph()
     
@@ -255,9 +253,27 @@ def restart_pipeline(checkpoint_thread_id: str) -> dict:
         console.print(f"[red]No run found with ID: {checkpoint_thread_id}[/red]")
         return {}
     
-    # Clear all generated assets but keep reddit_thread and run_dir
-    updates = {
-        "enable_reviews": False,
+    # Create a NEW thread_id for the restart so it's a fresh run in LangGraph
+    new_thread_id = str(uuid.uuid4())[:8]
+    
+    # Create a NEW run directory for the restarted run
+    base_config = BaseConfig()
+    run_dir = base_config.RUNS_PATH / new_thread_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    
+    console.print()
+    console.print(Panel(
+        f"[bold]{new_thread_id}[/bold]\n[dim]Use this NEW ID to resume: uv run python src/main.py resume {new_thread_id}[/dim]",
+        title="[cyan]New Checkpoint ID[/cyan]",
+        border_style="cyan"
+    ))
+    console.print()
+    
+    # Create fresh initial state with the reddit_thread from old run
+    initial_state: CreepypastaState = {
+        "enable_reviews": enable_reviews,
+        "reddit_thread": current["reddit_thread"],
+        "run_dir": str(run_dir),
         "triage": None,
         "script": None,
         "scene_prompts": None,
@@ -270,22 +286,17 @@ def restart_pipeline(checkpoint_thread_id: str) -> dict:
         "video": None,
         "youtube_link": None,
         "current_feedback": None,
+        "checkpoint_thread_id": new_thread_id,
         "status": "restarted",
         "message": None,
     }
     
-    # Find checkpoint after triage node (to restart from refine_story)
-    checkpoint_config = find_checkpoint_before_node(app, checkpoint_thread_id, "refine_story")
-    if not checkpoint_config:
-        # No checkpoint before refine_story, use current config
-        checkpoint_config = config
-    
-    update_state_at_checkpoint(app, checkpoint_config, updates)
+    new_config = {"configurable": {"thread_id": new_thread_id}}
     
     console.print("[green]Restarting pipeline from the beginning...[/green]\n")
-    app.invoke(None, config=checkpoint_config)
+    app.invoke(initial_state, config=new_config)
     
-    final_state = review_loop(app, {"configurable": {"thread_id": checkpoint_thread_id}})
+    final_state = review_loop(app, new_config)
     
     status = final_state.get("status", "unknown")
     summary = f"[bold]Status:[/bold] [{'green' if status in ['completed', 'uploaded'] else 'yellow'}]{status}[/]"
@@ -377,6 +388,7 @@ First time? Run: uv run scrape-reddit
 
     restart_parser = subparsers.add_parser("restart", help="Completely restart from beginning")
     restart_parser.add_argument("thread_id", help="Checkpoint thread_id")
+    restart_parser.add_argument("--no-review", action="store_true", help="Auto-approve all")
 
     subparsers.add_parser("status", help="Show queue statistics")
 
@@ -443,7 +455,7 @@ Update 2: I think whatever is behind that door... knows I'm listening.""",
         rerun_from_step(args.thread_id, args.step)
 
     elif args.command == "restart":
-        restart_pipeline(args.thread_id)
+        restart_pipeline(args.thread_id, enable_reviews=not args.no_review)
 
     elif args.command == "status":
         show_status()
